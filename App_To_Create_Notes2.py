@@ -90,7 +90,7 @@ class MeetingRecorderApp:
             return
 
         self.is_recording = False
-        messagebox.showinfo("Nagrywanie", f"Nagrywanie zakończone. Plik zapisany jako {self.audio_filename}")
+        messagebox.showinfo("Nagrywanie", f"You stopped the recording. File saved as {self.audio_filename}")
 
     def save_notes(self):
         if not self.transcription.strip():
@@ -129,11 +129,16 @@ class MeetingRecorderApp:
         if os.path.exists(folder_path):
             os.startfile(folder_path)
         else:
-            messagebox.showerror("Błąd", f"Folder {folder_path} nie istnieje!")
+            messagebox.showerror("Błąd", f"Folder {folder_path} doesn't exist!")
 
     def open_settings(self):
+        if self.is_recording:
+            messagebox.showinfo("Settings", "Stop the recording before you open settings!")
+            return
+
         settings_window = tk.Toplevel()
         settings_window.title("Settings")
+        settings_window.geometry("400x300")  # Zwiększona szerokość okna
 
         tk.Label(settings_window, text="Choose Language:").pack(pady=10)
 
@@ -151,7 +156,7 @@ class MeetingRecorderApp:
 
         def save_settings():
             self.audio_format = format_var.get()
-            messagebox.showinfo("Settings", f"Settings saved. Format set to {self.audio_format.upper()}.")
+            messagebox.showinfo("Settings", f"Settings saved.")
             settings_window.destroy()
 
         tk.Button(settings_window, text="Save", command=save_settings).pack(pady=10)

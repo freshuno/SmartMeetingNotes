@@ -10,6 +10,11 @@ import soundfile as sf
 from vosk import Model, KaldiRecognizer
 from fpdf import FPDF
 from datetime import datetime
+from pydub import AudioSegment
+from pydub.utils import which
+from pydub import AudioSegment
+
+AudioSegment.converter = which("ffmpeg")
 
 
 class MeetingRecorderApp:
@@ -27,6 +32,9 @@ class MeetingRecorderApp:
         if not os.path.exists(self.recordings_folder):
             os.makedirs(self.recordings_folder)
 
+        # Domyślny format zapisu nagrania
+        self.audio_format = "wav"
+
     def start_audio_recording(self):
         if self.is_recording:
             messagebox.showinfo("Nagrywanie", "Nagrywanie już trwa!")
@@ -34,7 +42,7 @@ class MeetingRecorderApp:
 
         # Generowanie nazwy pliku na podstawie daty i czasu
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        self.audio_filename = os.path.join(self.recordings_folder, f"{timestamp}.wav")
+        self.audio_filename = os.path.join(self.recordings_folder, f"{timestamp}.{self.audio_format}")
 
         self.is_recording = True
         self.transcription = ""
@@ -64,8 +72,15 @@ class MeetingRecorderApp:
 
                 audio_data = np.concatenate(frames, axis=0)
                 sf.write(self.audio_filename, audio_data, samplerate=self.samplerate)
-        except Exception as e:
-            messagebox.showerror("Błąd", f"Nie udało się nagrać lub przetranskrybować: {e}")
+
+                if self.audio_format == "mp3":
+                    wav_audio = AudioSegment.from_wav(self.audio_filename)
+                    self.audio_filename = self.audio_filename.replace(".wav", ".mp3")
+                    wav_audio.export(self.audio_filename, format="mp3")
+                    os.remove(self.audio_filename.replace(".mp3", ".wav"))
+
+        except Exception:
+            pass  # Ignorowanie błędów
         finally:
             self.is_recording = False
 
@@ -109,6 +124,38 @@ class MeetingRecorderApp:
         tk.Button(save_window, text="Zapisz jako TXT", command=lambda: save_as("TXT")).pack(pady=5)
         tk.Button(save_window, text="Zapisz jako PDF", command=lambda: save_as("PDF")).pack(pady=5)
 
+    def browse_recordings(self):
+        folder_path = os.path.abspath(self.recordings_folder)
+        if os.path.exists(folder_path):
+            os.startfile(folder_path)
+        else:
+            messagebox.showerror("Błąd", f"Folder {folder_path} nie istnieje!")
+
+    def open_settings(self):
+        settings_window = tk.Toplevel()
+        settings_window.title("Settings")
+
+        tk.Label(settings_window, text="Choose Language:").pack(pady=10)
+
+        language_var = tk.StringVar(value="Polski")
+
+        tk.Radiobutton(settings_window, text="Polski", variable=language_var, value="Polski").pack(anchor=tk.W)
+        tk.Radiobutton(settings_window, text="English", variable=language_var, value="English").pack(anchor=tk.W)
+
+        tk.Label(settings_window, text="Choose Recording Format:").pack(pady=10)
+
+        format_var = tk.StringVar(value=self.audio_format)
+
+        tk.Radiobutton(settings_window, text="WAV", variable=format_var, value="wav").pack(anchor=tk.W)
+        tk.Radiobutton(settings_window, text="MP3", variable=format_var, value="mp3").pack(anchor=tk.W)
+
+        def save_settings():
+            self.audio_format = format_var.get()
+            messagebox.showinfo("Settings", f"Settings saved. Format set to {self.audio_format.upper()}.")
+            settings_window.destroy()
+
+        tk.Button(settings_window, text="Save", command=save_settings).pack(pady=10)
+
     def start_ui(self):
         root = tk.Tk()
         root.title("Meeting Recorder")
@@ -117,6 +164,8 @@ class MeetingRecorderApp:
         tk.Button(root, text="Start Recording", command=self.start_audio_recording).pack(pady=5)
         tk.Button(root, text="Stop Recording", command=self.stop_audio_recording).pack(pady=5)
         tk.Button(root, text="Save Notes", command=self.save_notes).pack(pady=5)
+        tk.Button(root, text="Browse Recordings", command=self.browse_recordings).pack(pady=5)
+        tk.Button(root, text="Settings", command=self.open_settings).pack(pady=5)
 
         self.transcription_text = ScrolledText(root, wrap=tk.WORD, width=80, height=20)
         self.transcription_text.pack(padx=10, pady=10)

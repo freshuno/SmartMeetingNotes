@@ -9,11 +9,12 @@ import soundcard as sc
 import soundfile as sf
 from vosk import Model, KaldiRecognizer
 from fpdf import FPDF
+from datetime import datetime
 
 
 class MeetingRecorderApp:
     def __init__(self):
-        self.audio_filename = "audio_recording.wav"
+        self.audio_filename = ""
         self.is_recording = False
         self.transcription = ""
         self.model_path = "./vosk-model-small-pl-0.22"
@@ -21,10 +22,19 @@ class MeetingRecorderApp:
         self.blocksize = 2048  # Zwiększony rozmiar bufora
         self.recorder = None
 
+        # Ścieżka do folderu na nagrania
+        self.recordings_folder = "./recordings"
+        if not os.path.exists(self.recordings_folder):
+            os.makedirs(self.recordings_folder)
+
     def start_audio_recording(self):
         if self.is_recording:
             messagebox.showinfo("Nagrywanie", "Nagrywanie już trwa!")
             return
+
+        # Generowanie nazwy pliku na podstawie daty i czasu
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        self.audio_filename = os.path.join(self.recordings_folder, f"{timestamp}.wav")
 
         self.is_recording = True
         self.transcription = ""

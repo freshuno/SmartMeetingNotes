@@ -125,11 +125,122 @@ class MeetingRecorderApp:
         ttk.Button(save_window, text="Save as PDF", command=lambda: save_as("PDF")).pack(pady=5)
 
     def browse_recordings(self):
-        folder_path = os.path.abspath(self.recordings_folder)
-        if os.path.exists(folder_path):
-            os.startfile(folder_path)
-        else:
-            messagebox.showerror("Error", f"Folder {folder_path} does not exist!")
+        recordings_window = tk.Toplevel()
+        recordings_window.title("Available Recordings")
+        recordings_window.geometry("700x600")
+
+        ttk.Label(recordings_window, text="Available Recordings:", font=("Helvetica", 14)).pack(pady=10)
+
+        # Listbox with additional information
+        listbox_frame = ttk.Frame(recordings_window)
+        listbox_frame.pack(pady=10, fill=tk.BOTH, expand=True)
+
+        columns = ("Name", "Size (MB)", "Date")
+        recordings_list = ttk.Treeview(listbox_frame, columns=columns, show="headings", height=15)
+        recordings_list.pack(fill=tk.BOTH, expand=True)
+
+        for col in columns:
+            recordings_list.heading(col, text=col, anchor=tk.CENTER)
+
+        # Adjust column widths
+        recordings_list.column("Name", anchor=tk.W, width=300)
+        recordings_list.column("Size (MB)", anchor=tk.E, width=100)
+        recordings_list.column("Date", anchor=tk.W, width=200)
+
+        # Load recordings into the list
+        def load_recordings(sort_by="Name", reverse=False):
+            for row in recordings_list.get_children():
+                recordings_list.delete(row)
+
+            recordings = [
+                f for f in os.listdir(self.recordings_folder)
+                if f.endswith(('.wav', '.mp3'))
+            ]
+
+            recordings_info = []
+            for rec in recordings:
+                filepath = os.path.join(self.recordings_folder, rec)
+                file_info = os.stat(filepath)
+                size_mb = round(file_info.st_size / (1024 * 1024), 2)  # Round to 2 decimal places
+                last_modified = datetime.fromtimestamp(file_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                recordings_info.append((rec, size_mb, last_modified))
+
+            sort_index = {"Name": 0, "Size (MB)": 1, "Date": 2}[sort_by]
+            recordings_info.sort(key=lambda x: x[sort_index], reverse=reverse)
+
+            for rec in recordings_info:
+                recordings_list.insert("", tk.END, values=rec)
+
+        # Initial load
+        load_recordings()
+
+        # Sort on column click
+        sort_order = {"Name": False, "Size (MB)": False, "Date": False}
+
+        def on_column_click(col):
+            sort_order[col] = not sort_order[col]  # Toggle sort order
+            load_recordings(sort_by=col, reverse=sort_order[col])
+
+        for col in columns:
+            recordings_list.heading(col, text=col, command=lambda c=col: on_column_click(c))
+
+        # Actions
+        def play_recording():
+            selected = recordings_list.selection()
+            if not selected:
+                messagebox.showerror("Error", "No recording selected!")
+                return
+            filename = recordings_list.item(selected[0], "values")[0]
+            os.startfile(os.path.join(self.recordings_folder, filename))
+
+        def delete_recording():
+            selected = recordings_list.selection()
+            if not selected:
+                messagebox.showerror("Error", "No recording selected!")
+                return
+            filename = recordings_list.item(selected[0], "values")[0]
+            os.remove(os.path.join(self.recordings_folder, filename))
+            load_recordings()
+            messagebox.showinfo("Delete", f"{filename} deleted successfully!")
+
+        def rename_recording():
+            selected = recordings_list.selection()
+            if not selected:
+                messagebox.showerror("Error", "No recording selected!")
+                return
+            old_filename = recordings_list.item(selected[0], "values")[0]
+            rename_window = tk.Toplevel(recordings_window)
+            rename_window.title("Rename Recording")
+
+            ttk.Label(rename_window, text="Enter new name (without extension):").pack(pady=10)
+            new_name_var = tk.StringVar(value=os.path.splitext(old_filename)[0])
+            new_name_entry = ttk.Entry(rename_window, textvariable=new_name_var)
+            new_name_entry.pack(pady=5)
+
+            def apply_rename():
+                new_name = new_name_var.get().strip()
+                if not new_name:
+                    messagebox.showerror("Error", "Name cannot be empty!")
+                    return
+                new_filename = f"{new_name}{os.path.splitext(old_filename)[1]}"
+                os.rename(
+                    os.path.join(self.recordings_folder, old_filename),
+                    os.path.join(self.recordings_folder, new_filename)
+                )
+                load_recordings()
+                rename_window.destroy()
+                messagebox.showinfo("Rename", f"Renamed to {new_filename}")
+
+            ttk.Button(rename_window, text="Rename", command=apply_rename).pack(pady=10)
+
+
+        # Centered Buttons
+        button_frame = ttk.Frame(recordings_window)
+        button_frame.pack(pady=10)
+
+        ttk.Button(button_frame, text="Play", command=play_recording).grid(row=0, column=0, padx=10)
+        ttk.Button(button_frame, text="Delete", command=delete_recording).grid(row=0, column=1, padx=10)
+        ttk.Button(button_frame, text="Rename", command=rename_recording).grid(row=0, column=2, padx=10)
 
     def open_settings(self):
         if self.is_recording:
@@ -164,24 +275,21 @@ class MeetingRecorderApp:
     def start_ui(self):
         root = tk.Tk()
         root.title("Meeting Recorder")
-        root.geometry("900x650")
-        style = ttk.Style()
-        style.configure("TButton", padding=5, relief="flat", font=("Helvetica", 12))
-        style.configure("TLabel", font=("Helvetica", 12))
+        root.geometry("800x600")
 
-        header = ttk.Label(root, text="Meeting Recorder Application", font=("Helvetica", 18, "bold"))
+        header = ttk.Label(root, text="Meeting Recorder Application", font=("Helvetica", 16, "bold"))
         header.pack(pady=20)
 
         button_frame = ttk.Frame(root)
         button_frame.pack(pady=10)
 
-        ttk.Button(button_frame, text="🎙 Start Recording", command=self.start_audio_recording).grid(row=0, column=0, padx=10)
-        ttk.Button(button_frame, text="⏹ Stop Recording", command=self.stop_audio_recording).grid(row=0, column=1, padx=10)
-        ttk.Button(button_frame, text="💾 Save Notes", command=self.save_notes).grid(row=0, column=2, padx=10)
-        ttk.Button(button_frame, text="📂 Browse Recordings", command=self.browse_recordings).grid(row=0, column=3, padx=10)
-        ttk.Button(button_frame, text="⚙️ Settings", command=self.open_settings).grid(row=0, column=4, padx=10)
+        ttk.Button(button_frame, text="Start Recording", command=self.start_audio_recording).grid(row=0, column=0, padx=10)
+        ttk.Button(button_frame, text="Stop Recording", command=self.stop_audio_recording).grid(row=0, column=1, padx=10)
+        ttk.Button(button_frame, text="Save Notes", command=self.save_notes).grid(row=0, column=2, padx=10)
+        ttk.Button(button_frame, text="Browse Recordings", command=self.browse_recordings).grid(row=0, column=3, padx=10)
+        ttk.Button(button_frame, text="Settings", command=self.open_settings).grid(row=0, column=4, padx=10)
 
-        transcription_label = ttk.Label(root, text="Transcription:", font=("Helvetica", 14))
+        transcription_label = ttk.Label(root, text="Transcription:", font=("Helvetica", 12))
         transcription_label.pack(pady=10)
 
         transcription_frame = ttk.Frame(root, borderwidth=2, relief="groove")

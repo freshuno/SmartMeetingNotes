@@ -3,6 +3,7 @@ import threading
 import tkinter as tk
 from tkinter import messagebox, filedialog
 from tkinter.scrolledtext import ScrolledText
+from tkinter import ttk
 import json
 import numpy as np
 import soundcard as sc
@@ -24,35 +25,34 @@ class MeetingRecorderApp:
         self.transcription = ""
         self.model_path = "./vosk-model-small-pl-0.22"
         self.samplerate = 48000
-        self.blocksize = 2048  # Zwiększony rozmiar bufora
+        self.blocksize = 2048
         self.recorder = None
 
-        # Ścieżka do folderu na nagrania
+        # Folder na nagrania
         self.recordings_folder = "./recordings"
         if not os.path.exists(self.recordings_folder):
             os.makedirs(self.recordings_folder)
 
-        # Domyślny format zapisu nagrania
+        # Domyślny format nagrań
         self.audio_format = "wav"
 
     def start_audio_recording(self):
         if self.is_recording:
-            messagebox.showinfo("Nagrywanie", "Nagrywanie już trwa!")
+            messagebox.showinfo("Recording", "Recording is already in progress!")
             return
 
-        # Generowanie nazwy pliku na podstawie daty i czasu
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         self.audio_filename = os.path.join(self.recordings_folder, f"{timestamp}.{self.audio_format}")
 
         self.is_recording = True
         self.transcription = ""
         threading.Thread(target=self.record_and_transcribe).start()
-        messagebox.showinfo("Nagrywanie", "Nagrywanie i transkrypcja rozpoczęte!")
+        messagebox.showinfo("Recording", "Recording and transcription started!")
 
     def record_and_transcribe(self):
         try:
             if not os.path.exists(self.model_path):
-                raise FileNotFoundError("Nie znaleziono modelu Vosk.")
+                raise FileNotFoundError("Vosk model not found.")
             model = Model(self.model_path)
             recognizer = KaldiRecognizer(model, self.samplerate)
 
@@ -80,21 +80,21 @@ class MeetingRecorderApp:
                     os.remove(self.audio_filename.replace(".mp3", ".wav"))
 
         except Exception:
-            pass  # Ignorowanie błędów
+            pass
         finally:
             self.is_recording = False
 
     def stop_audio_recording(self):
         if not self.is_recording:
-            messagebox.showinfo("Nagrywanie", "Nagrywanie nie jest aktywne!")
+            messagebox.showinfo("Recording", "No active recording to stop!")
             return
 
         self.is_recording = False
-        messagebox.showinfo("Nagrywanie", f"You stopped the recording. File saved as {self.audio_filename}")
+        messagebox.showinfo("Recording", f"Recording stopped. File saved as {self.audio_filename}")
 
     def save_notes(self):
         if not self.transcription.strip():
-            messagebox.showinfo("Zapis", "Brak notatek do zapisania!")
+            messagebox.showinfo("Save Notes", "No transcription available to save!")
             return
 
         def save_as(format):
@@ -104,7 +104,7 @@ class MeetingRecorderApp:
                 if txt_filename:
                     with open(txt_filename, "w", encoding="utf-8") as f:
                         f.write(self.transcription)
-                    messagebox.showinfo("Zapis", f"Notatki zapisane jako {txt_filename}")
+                    messagebox.showinfo("Save Notes", f"Notes saved as {txt_filename}")
             elif format == "PDF":
                 pdf_filename = filedialog.asksaveasfilename(defaultextension=".pdf",
                                                             filetypes=[("PDF files", "*.pdf")])
@@ -115,65 +115,80 @@ class MeetingRecorderApp:
                     for line in self.transcription.split("\n"):
                         pdf.multi_cell(0, 10, line)
                     pdf.output(pdf_filename)
-                    messagebox.showinfo("Zapis", f"Notatki zapisane jako {pdf_filename}")
+                    messagebox.showinfo("Save Notes", f"Notes saved as {pdf_filename}")
             save_window.destroy()
 
         save_window = tk.Toplevel()
-        save_window.title("Wybierz format zapisu")
-        tk.Label(save_window, text="Wybierz format zapisu notatek:").pack(pady=10)
-        tk.Button(save_window, text="Zapisz jako TXT", command=lambda: save_as("TXT")).pack(pady=5)
-        tk.Button(save_window, text="Zapisz jako PDF", command=lambda: save_as("PDF")).pack(pady=5)
+        save_window.title("Choose Save Format")
+        ttk.Label(save_window, text="Select format to save notes:").pack(pady=10)
+        ttk.Button(save_window, text="Save as TXT", command=lambda: save_as("TXT")).pack(pady=5)
+        ttk.Button(save_window, text="Save as PDF", command=lambda: save_as("PDF")).pack(pady=5)
 
     def browse_recordings(self):
         folder_path = os.path.abspath(self.recordings_folder)
         if os.path.exists(folder_path):
             os.startfile(folder_path)
         else:
-            messagebox.showerror("Błąd", f"Folder {folder_path} doesn't exist!")
+            messagebox.showerror("Error", f"Folder {folder_path} does not exist!")
 
     def open_settings(self):
         if self.is_recording:
-            messagebox.showinfo("Settings", "Stop the recording before you open settings!")
+            messagebox.showinfo("Settings", "Stop the recording before opening settings!")
             return
 
         settings_window = tk.Toplevel()
         settings_window.title("Settings")
-        settings_window.geometry("400x300")  # Zwiększona szerokość okna
+        settings_window.geometry("400x300")
 
-        tk.Label(settings_window, text="Choose Language:").pack(pady=10)
+        ttk.Label(settings_window, text="Choose Language:").pack(pady=10)
 
         language_var = tk.StringVar(value="Polski")
 
-        tk.Radiobutton(settings_window, text="Polski", variable=language_var, value="Polski").pack(anchor=tk.W)
-        tk.Radiobutton(settings_window, text="English", variable=language_var, value="English").pack(anchor=tk.W)
+        ttk.Radiobutton(settings_window, text="Polski", variable=language_var, value="Polski").pack(anchor=tk.W)
+        ttk.Radiobutton(settings_window, text="English", variable=language_var, value="English").pack(anchor=tk.W)
 
-        tk.Label(settings_window, text="Choose Recording Format:").pack(pady=10)
+        ttk.Label(settings_window, text="Choose Recording Format:").pack(pady=10)
 
         format_var = tk.StringVar(value=self.audio_format)
 
-        tk.Radiobutton(settings_window, text="WAV", variable=format_var, value="wav").pack(anchor=tk.W)
-        tk.Radiobutton(settings_window, text="MP3", variable=format_var, value="mp3").pack(anchor=tk.W)
+        ttk.Radiobutton(settings_window, text="WAV", variable=format_var, value="wav").pack(anchor=tk.W)
+        ttk.Radiobutton(settings_window, text="MP3", variable=format_var, value="mp3").pack(anchor=tk.W)
 
         def save_settings():
             self.audio_format = format_var.get()
-            messagebox.showinfo("Settings", f"Settings saved.")
+            messagebox.showinfo("Settings", "Settings saved.")
             settings_window.destroy()
 
-        tk.Button(settings_window, text="Save", command=save_settings).pack(pady=10)
+        ttk.Button(settings_window, text="Save", command=save_settings).pack(pady=10)
 
     def start_ui(self):
         root = tk.Tk()
         root.title("Meeting Recorder")
+        root.geometry("900x650")
+        style = ttk.Style()
+        style.configure("TButton", padding=5, relief="flat", font=("Helvetica", 12))
+        style.configure("TLabel", font=("Helvetica", 12))
 
-        tk.Label(root, text="Meeting Recorder Application").pack(pady=10)
-        tk.Button(root, text="Start Recording", command=self.start_audio_recording).pack(pady=5)
-        tk.Button(root, text="Stop Recording", command=self.stop_audio_recording).pack(pady=5)
-        tk.Button(root, text="Save Notes", command=self.save_notes).pack(pady=5)
-        tk.Button(root, text="Browse Recordings", command=self.browse_recordings).pack(pady=5)
-        tk.Button(root, text="Settings", command=self.open_settings).pack(pady=5)
+        header = ttk.Label(root, text="Meeting Recorder Application", font=("Helvetica", 18, "bold"))
+        header.pack(pady=20)
 
-        self.transcription_text = ScrolledText(root, wrap=tk.WORD, width=80, height=20)
-        self.transcription_text.pack(padx=10, pady=10)
+        button_frame = ttk.Frame(root)
+        button_frame.pack(pady=10)
+
+        ttk.Button(button_frame, text="🎙 Start Recording", command=self.start_audio_recording).grid(row=0, column=0, padx=10)
+        ttk.Button(button_frame, text="⏹ Stop Recording", command=self.stop_audio_recording).grid(row=0, column=1, padx=10)
+        ttk.Button(button_frame, text="💾 Save Notes", command=self.save_notes).grid(row=0, column=2, padx=10)
+        ttk.Button(button_frame, text="📂 Browse Recordings", command=self.browse_recordings).grid(row=0, column=3, padx=10)
+        ttk.Button(button_frame, text="⚙️ Settings", command=self.open_settings).grid(row=0, column=4, padx=10)
+
+        transcription_label = ttk.Label(root, text="Transcription:", font=("Helvetica", 14))
+        transcription_label.pack(pady=10)
+
+        transcription_frame = ttk.Frame(root, borderwidth=2, relief="groove")
+        transcription_frame.pack(padx=20, pady=10, fill="both", expand=True)
+
+        self.transcription_text = ScrolledText(transcription_frame, wrap=tk.WORD, width=80, height=20)
+        self.transcription_text.pack(padx=10, pady=10, fill="both", expand=True)
 
         def update_transcription_text():
             self.transcription_text.delete(1.0, tk.END)

@@ -97,32 +97,178 @@ class MeetingRecorderApp:
             messagebox.showinfo("Save Notes", "No transcription available to save!")
             return
 
-        def save_as(format):
-            if format == "TXT":
-                txt_filename = filedialog.asksaveasfilename(defaultextension=".txt",
-                                                            filetypes=[("Text files", "*.txt")])
-                if txt_filename:
-                    with open(txt_filename, "w", encoding="utf-8") as f:
-                        f.write(self.transcription)
-                    messagebox.showinfo("Save Notes", f"Notes saved as {txt_filename}")
-            elif format == "PDF":
-                pdf_filename = filedialog.asksaveasfilename(defaultextension=".pdf",
-                                                            filetypes=[("PDF files", "*.pdf")])
-                if pdf_filename:
-                    pdf = FPDF()
-                    pdf.add_page()
-                    pdf.set_font("Arial", size=12)
-                    for line in self.transcription.split("\n"):
-                        pdf.multi_cell(0, 10, line)
-                    pdf.output(pdf_filename)
-                    messagebox.showinfo("Save Notes", f"Notes saved as {pdf_filename}")
-            save_window.destroy()
+        # Folder na notatki
+        notes_folder = "./notes"
+        if not os.path.exists(notes_folder):
+            os.makedirs(notes_folder)
 
-        save_window = tk.Toplevel()
-        save_window.title("Choose Save Format")
-        ttk.Label(save_window, text="Select format to save notes:").pack(pady=10)
-        ttk.Button(save_window, text="Save as TXT", command=lambda: save_as("TXT")).pack(pady=5)
-        ttk.Button(save_window, text="Save as PDF", command=lambda: save_as("PDF")).pack(pady=5)
+        # Tworzenie unikalnej nazwy pliku
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        txt_filename = os.path.join(notes_folder, f"notes_{timestamp}.txt")
+
+        # Zapis w formacie TXT
+        with open(txt_filename, "w", encoding="utf-8") as f:
+            f.write(self.transcription)
+
+        messagebox.showinfo("Save Notes", f"Notes saved as:\n- {txt_filename}")
+
+    def browse_notes(self):
+        notes_window = tk.Toplevel()
+        notes_window.title("Available Notes")
+        notes_window.geometry("700x600")
+
+        ttk.Label(notes_window, text="Available Notes:", font=("Helvetica", 14)).pack(pady=10)
+
+        # Listbox z dodatkowymi informacjami
+        listbox_frame = ttk.Frame(notes_window)
+        listbox_frame.pack(pady=10, fill=tk.BOTH, expand=True)
+
+        columns = ("Name", "Size (KB)", "Date")
+        notes_list = ttk.Treeview(listbox_frame, columns=columns, show="headings", height=15)
+        notes_list.pack(fill=tk.BOTH, expand=True)
+
+        for col in columns:
+            notes_list.heading(col, text=col, anchor=tk.CENTER)
+
+        # Dostosowanie szerokości kolumn
+        notes_list.column("Name", anchor=tk.W, width=300)
+        notes_list.column("Size (KB)", anchor=tk.E, width=100)
+        notes_list.column("Date", anchor=tk.W, width=200)
+
+        # Załadowanie notatek
+        notes_folder = "./notes"
+        if not os.path.exists(notes_folder):
+            os.makedirs(notes_folder)
+
+        def load_notes(sort_by="Name", reverse=False):
+            for row in notes_list.get_children():
+                notes_list.delete(row)
+
+            notes = [f for f in os.listdir(notes_folder) if f.endswith(".txt")]
+
+            notes_info = []
+            for note in notes:
+                filepath = os.path.join(notes_folder, note)
+                file_info = os.stat(filepath)
+                size_kb = round(file_info.st_size / 1024, 2)  # Rozmiar w KB
+                last_modified = datetime.fromtimestamp(file_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                notes_info.append((note, size_kb, last_modified))
+
+            sort_index = {"Name": 0, "Size (KB)": 1, "Date": 2}[sort_by]
+            notes_info.sort(key=lambda x: x[sort_index], reverse=reverse)
+
+            for note in notes_info:
+                notes_list.insert("", tk.END, values=note)
+
+        # Początkowe załadowanie
+        load_notes()
+
+        # Sortowanie po kliknięciu kolumny
+        sort_order = {"Name": False, "Size (KB)": False, "Date": False}
+
+        def on_column_click(col):
+            sort_order[col] = not sort_order[col]  # Przełączenie kolejności sortowania
+            load_notes(sort_by=col, reverse=sort_order[col])
+
+        for col in columns:
+            notes_list.heading(col, text=col, command=lambda c=col: on_column_click(c))
+
+        # Działania
+        def open_note():
+            selected = notes_list.selection()
+            if not selected:
+                messagebox.showerror("Error", "No note selected!")
+                return
+            filename = notes_list.item(selected[0], "values")[0]
+            filepath = os.path.join(notes_folder, filename)
+
+            with open(filepath, "r", encoding="utf-8") as file:
+                content = file.read()
+
+            # Okno z zawartością notatki
+            note_window = tk.Toplevel()
+            note_window.title(filename)
+
+            # Pole wyszukiwania
+            search_frame = ttk.Frame(note_window)
+            search_frame.pack(padx=10, pady=5, fill="x")
+
+            ttk.Label(search_frame, text="Search:").pack(side="left", padx=5)
+            search_var = tk.StringVar()
+            search_entry = ttk.Entry(search_frame, textvariable=search_var)
+            search_entry.pack(side="left", padx=5, fill="x", expand=True)
+
+            text_area = ScrolledText(note_window, wrap=tk.WORD, width=80, height=20)
+            text_area.pack(padx=10, pady=10, fill="both", expand=True)
+            text_area.insert(tk.END, content)
+            text_area.configure(state="disabled")
+
+            # Funkcja wyszukiwania
+            def search_text():
+                text_area.tag_remove("highlight", "1.0", tk.END)  # Usunięcie poprzednich podświetleń
+                search_term = search_var.get().strip()
+                if not search_term:
+                    return
+
+                start_idx = "1.0"
+                while True:
+                    start_idx = text_area.search(search_term, start_idx, nocase=1, stopindex=tk.END)
+                    if not start_idx:
+                        break
+                    end_idx = f"{start_idx}+{len(search_term)}c"
+                    text_area.tag_add("highlight", start_idx, end_idx)
+                    start_idx = end_idx
+                text_area.tag_config("highlight", background="yellow", foreground="black")
+
+            search_var.trace("w", lambda *args: search_text())  # Aktualizacja podświetlenia w trakcie wpisywania
+
+        def delete_note():
+            selected = notes_list.selection()
+            if not selected:
+                messagebox.showerror("Error", "No note selected!")
+                return
+            filename = notes_list.item(selected[0], "values")[0]
+            os.remove(os.path.join(notes_folder, filename))
+            load_notes()
+            messagebox.showinfo("Delete", f"{filename} deleted successfully!")
+
+        def rename_note():
+            selected = notes_list.selection()
+            if not selected:
+                messagebox.showerror("Error", "No note selected!")
+                return
+            old_filename = notes_list.item(selected[0], "values")[0]
+            rename_window = tk.Toplevel(notes_window)
+            rename_window.title("Rename Note")
+
+            ttk.Label(rename_window, text="Enter new name (without extension):").pack(pady=10)
+            new_name_var = tk.StringVar(value=os.path.splitext(old_filename)[0])
+            new_name_entry = ttk.Entry(rename_window, textvariable=new_name_var)
+            new_name_entry.pack(pady=5)
+
+            def apply_rename():
+                new_name = new_name_var.get().strip()
+                if not new_name:
+                    messagebox.showerror("Error", "Name cannot be empty!")
+                    return
+                new_filename = f"{new_name}.txt"
+                os.rename(
+                    os.path.join(notes_folder, old_filename),
+                    os.path.join(notes_folder, new_filename)
+                )
+                load_notes()
+                rename_window.destroy()
+                messagebox.showinfo("Rename", f"Renamed to {new_filename}")
+
+            ttk.Button(rename_window, text="Rename", command=apply_rename).pack(pady=10)
+
+        # Przyciski akcji
+        button_frame = ttk.Frame(notes_window)
+        button_frame.pack(pady=10)
+
+        ttk.Button(button_frame, text="Open", command=open_note).grid(row=0, column=0, padx=10)
+        ttk.Button(button_frame, text="Delete", command=delete_note).grid(row=0, column=1, padx=10)
+        ttk.Button(button_frame, text="Rename", command=rename_note).grid(row=0, column=2, padx=10)
 
     def browse_recordings(self):
         recordings_window = tk.Toplevel()
@@ -287,7 +433,8 @@ class MeetingRecorderApp:
         ttk.Button(button_frame, text="Stop Recording", command=self.stop_audio_recording).grid(row=0, column=1, padx=10)
         ttk.Button(button_frame, text="Save Notes", command=self.save_notes).grid(row=0, column=2, padx=10)
         ttk.Button(button_frame, text="Browse Recordings", command=self.browse_recordings).grid(row=0, column=3, padx=10)
-        ttk.Button(button_frame, text="Settings", command=self.open_settings).grid(row=0, column=4, padx=10)
+        ttk.Button(button_frame, text="Browse Notes", command=self.browse_notes).grid(row=0, column=4, padx=10)
+        ttk.Button(button_frame, text="Settings", command=self.open_settings).grid(row=0, column=5, padx=10)
 
         transcription_label = ttk.Label(root, text="Transcription:", font=("Helvetica", 12))
         transcription_label.pack(pady=10)

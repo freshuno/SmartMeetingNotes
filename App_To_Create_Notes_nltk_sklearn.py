@@ -18,7 +18,8 @@ import openai
 import nltk
 from sklearn.feature_extraction.text import TfidfVectorizer
 import spacy
-
+import ttkbootstrap as ttk
+from ttkbootstrap.constants import *
 AudioSegment.converter = which("ffmpeg")
 
 
@@ -83,6 +84,7 @@ def summarize_with_sklearn(text, num_sentences=3):
 
 class MeetingRecorderApp:
     def __init__(self):
+        # Inicjalizacja elementów aplikacji (bez zmian funkcjonalnych)
         self.audio_filename = ""
         self.is_recording = False
         self.transcription = ""
@@ -96,8 +98,91 @@ class MeetingRecorderApp:
         if not os.path.exists(self.recordings_folder):
             os.makedirs(self.recordings_folder)
 
-        # Domyślny format nagrań
         self.audio_format = "wav"
+
+    def start_ui(self):
+        root = ttk.Window(themename="flatly")
+        root.title("Meeting Recorder")
+        root.geometry("900x700")
+
+        # Nagłówek aplikacji
+        header_frame = ttk.Frame(root, padding=10)
+        header_frame.pack(fill=X)
+        header_label = ttk.Label(
+            header_frame, text="Meeting Recorder Application", font=("Helvetica", 20, "bold"), anchor=CENTER
+        )
+        header_label.pack(fill=X)
+
+        # Główne przyciski akcji
+        button_frame = ttk.Frame(root, padding=20)
+        button_frame.pack(fill=X)
+
+        ttk.Button(
+            button_frame, text="Start Recording", command=self.start_audio_recording, bootstyle=SUCCESS
+        ).grid(row=0, column=0, padx=10, pady=5)
+        ttk.Button(
+            button_frame, text="Stop Recording", command=self.stop_audio_recording, bootstyle=DANGER
+        ).grid(row=0, column=1, padx=10, pady=5)
+        ttk.Button(
+            button_frame, text="Save Notes", command=self.save_notes, bootstyle=PRIMARY
+        ).grid(row=0, column=2, padx=10, pady=5)
+        ttk.Button(
+            button_frame, text="Summarize Notes", command=self.summarize_notes, bootstyle=INFO
+        ).grid(row=0, column=3, padx=10, pady=5)
+        ttk.Button(
+            button_frame, text="Browse Recordings", command=self.browse_recordings, bootstyle=SECONDARY
+        ).grid(row=0, column=4, padx=10, pady=5)
+        ttk.Button(
+            button_frame, text="Browse Notes", command=self.browse_notes, bootstyle=WARNING
+        ).grid(row=0, column=5, padx=10, pady=5)
+        ttk.Button(
+            button_frame, text="Settings", command=self.open_settings, bootstyle=OUTLINE
+        ).grid(row=0, column=6, padx=10, pady=5)
+
+        # Obszar transkrypcji
+        transcription_label = ttk.Label(
+            root, text="Transcription:", font=("Helvetica", 14), anchor=W
+        )
+        transcription_label.pack(fill=X, padx=10, pady=5)
+
+        transcription_frame = ttk.Frame(root, padding=10, relief=RIDGE)
+        transcription_frame.pack(fill=BOTH, expand=True, padx=10, pady=5)
+
+        self.transcription_text = ttk.ScrolledText(
+            transcription_frame, wrap=WORD, height=20, width=80, font=("Helvetica", 12)
+        )
+        self.transcription_text.pack(fill=BOTH, expand=True)
+
+        # Aktualizacja transkrypcji w czasie rzeczywistym
+        def update_transcription_text():
+            self.transcription_text.delete(1.0, END)
+            self.transcription_text.insert(END, self.transcription)
+            root.after(1000, update_transcription_text)
+
+        update_transcription_text()
+        root.mainloop()
+
+    # Pozostałe funkcje aplikacji (zachowane bez zmian)
+    def start_audio_recording(self):
+        pass
+
+    def stop_audio_recording(self):
+        pass
+
+    def save_notes(self):
+        pass
+
+    def summarize_notes(self):
+        pass
+
+    def browse_notes(self):
+        pass
+
+    def browse_recordings(self):
+        pass
+
+    def open_settings(self):
+        pass
 
     def start_audio_recording(self):
         if self.is_recording:
@@ -520,7 +605,7 @@ class MeetingRecorderApp:
     def start_ui(self):
         root = tk.Tk()
         root.title("Meeting Recorder")
-        root.geometry("800x600")
+        root.geometry("1200x800")
 
         header = ttk.Label(root, text="Meeting Recorder Application", font=("Helvetica", 16, "bold"))
         header.pack(pady=20)

@@ -27,6 +27,8 @@ from reportlab.pdfbase.ttfonts import TTFont
 from reportlab.pdfbase import pdfmetrics
 from reportlab.lib.pagesizes import letter
 import textwrap
+from tkinter import messagebox, filedialog
+import time
 
 # Pobierz potrzebne dane NLTK (raz)
 #nltk.download("punkt")
@@ -250,23 +252,65 @@ class MeetingRecorderApp:
             messagebox.showwarning("Warning", "No transcription to save.")
             return
 
-        save_path = filedialog.asksaveasfilename(defaultextension=".txt",
-                                                 filetypes=[("Text files", "*.txt"), ("PDF files", "*.pdf")])
-        if not save_path:
-            return
+        # Ścieżka do folderu, gdzie będą zapisywane notatki
+        notes_folder = "./notes"
+
+        # Tworzymy folder, jeśli nie istnieje
+        if not os.path.exists(notes_folder):
+            os.makedirs(notes_folder)
+
+        # Tworzenie okna z wyborem formatu
+        def choose_format():
+            format_window = tk.Toplevel()  # Tworzymy nowe okno
+            format_window.title("Choose Format")
+
+            # Zmienna do przechowywania wybranego formatu
+            selected_format = tk.StringVar(value="txt")
+
+            # Ustawienia dla radia Buttonów
+            txt_radio = ttk.Radiobutton(format_window, text="TXT", value="txt", variable=selected_format)
+            pdf_radio = ttk.Radiobutton(format_window, text="PDF", value="pdf", variable=selected_format)
+
+            txt_radio.pack(pady=10)
+            pdf_radio.pack(pady=10)
+
+            def save_and_close():
+                file_type = selected_format.get()
+                format_window.destroy()
+                self.save_file(file_type)
+
+            # Przycisk do zapisania i zamknięcia okna
+            save_button = ttk.Button(format_window, text="Save", command=save_and_close)
+            save_button.pack(pady=20)
+
+            format_window.mainloop()
+
+        # Wywołanie okna wyboru formatu
+        choose_format()
+
+    def save_file(self, file_type):
+        # Tworzenie unikalnej nazwy pliku
+        timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        notes_folder = "./notes"  # Ścieżka do folderu, w którym zapisujemy plik
+
+        # Generowanie nazwy pliku w zależności od formatu
+        if file_type == 'txt':
+            save_path = os.path.join(notes_folder, f"notes_{timestamp}.txt")
+        else:
+            save_path = os.path.join(notes_folder, f"notes_{timestamp}.pdf")
 
         try:
-            # Save as TXT
+            # Zapisz jako TXT
             if save_path.endswith(".txt"):
                 with open(save_path, "w", encoding="utf-8") as f:
                     f.write(self.transcription)
 
-            # Save as PDF
-            elif save_path.endswith(".pdf"):
+            # Zapisz jako PDF
+            if save_path.endswith(".pdf"):
                 # Tworzenie PDF z ReportLab
                 pdf = canvas.Canvas(save_path, pagesize=letter)
 
-                # Dodawanie czcionki DejaVu Sans (lub innej)
+                # Dodanie czcionki DejaVu Sans (lub innej)
                 pdfmetrics.registerFont(
                     TTFont('DejaVuSans', './DejaVuSans.ttf'))  # Skopiuj plik DejaVuSans.ttf do folderu projektu
                 pdf.setFont("DejaVuSans", 12)
@@ -326,42 +370,6 @@ class MeetingRecorderApp:
             messagebox.showinfo("Success", "Notes saved successfully.")
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred while saving notes: {e}")
-
-    def summarize_notes(self):
-        """
-        Pobiera tekst z obszaru tekstowego i generuje podsumowanie, a następnie zapisuje je do pliku.
-        """
-        # Pobierz tekst z notatek (obszar tekstowy)
-        text = self.transcription_text.get("1.0", tk.END).strip()
-
-        if not text:
-            messagebox.showerror("Error", "Brak notatek do podsumowania!")
-            return
-
-        try:
-            # Wywołanie funkcji `summarize_with_sklearn`
-            summary = summarize_with_sklearn(text, num_sentences=3)
-
-            # Wyświetl podsumowanie w polu tekstowym
-            self.transcription_text.delete("1.0", tk.END)
-            self.transcription_text.insert("1.0", summary)
-
-            # Zapisz podsumowanie do pliku
-            summary_folder = "./summaries"
-            if not os.path.exists(summary_folder):
-                os.makedirs(summary_folder)
-
-            # Tworzenie unikalnej nazwy pliku dla podsumowania
-            timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-            summary_filename = os.path.join(summary_folder, f"summary_{timestamp}.txt")
-
-            # Zapisz podsumowanie w formacie TXT
-            with open(summary_filename, "w", encoding="utf-8") as f:
-                f.write(summary)
-
-            messagebox.showinfo("Success", f"Podsumowanie zostało wygenerowane i zapisane jako:\n- {summary_filename}")
-        except Exception as e:
-            messagebox.showerror("Error", f"Nie udało się stworzyć podsumowania: {e}")
 
     def browse_notes(self):
         notes_window = tk.Toplevel()

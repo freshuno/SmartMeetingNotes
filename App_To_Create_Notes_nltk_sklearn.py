@@ -29,6 +29,7 @@ from reportlab.lib.pagesizes import letter
 import textwrap
 from tkinter import messagebox, filedialog
 import time
+import fitz
 
 # Pobierz potrzebne dane NLTK (raz)
 #nltk.download("punkt")
@@ -403,7 +404,7 @@ class MeetingRecorderApp:
             for row in notes_list.get_children():
                 notes_list.delete(row)
 
-            notes = [f for f in os.listdir(notes_folder) if f.endswith(".txt")]
+            notes = [f for f in os.listdir(notes_folder) if f.endswith(".txt") or f.endswith(".pdf")]
 
             notes_info = []
             for note in notes:
@@ -441,8 +442,16 @@ class MeetingRecorderApp:
             filename = notes_list.item(selected[0], "values")[0]
             filepath = os.path.join(notes_folder, filename)
 
-            with open(filepath, "r", encoding="utf-8") as file:
-                content = file.read()
+            # Otwieranie pliku tekstowego
+            if filename.endswith(".txt"):
+                with open(filepath, "r", encoding="utf-8") as file:
+                    content = file.read()
+            # Otwieranie pliku PDF
+            elif filename.endswith(".pdf"):
+                with fitz.open(filepath) as doc:
+                    content = ""
+                    for page in doc:
+                        content += page.get_text("text")
 
             # Okno z zawartością notatki
             note_window = tk.Toplevel()
@@ -510,7 +519,7 @@ class MeetingRecorderApp:
                 if not new_name:
                     messagebox.showerror("Error", "Name cannot be empty!")
                     return
-                new_filename = f"{new_name}.txt"
+                new_filename = f"{new_name}{os.path.splitext(old_filename)[1]}"
                 os.rename(
                     os.path.join(notes_folder, old_filename),
                     os.path.join(notes_folder, new_filename)

@@ -277,13 +277,13 @@ class MeetingRecorderApp:
         # Wywołanie okna wyboru formatu
         choose_format()
 
-    def display_summary(self, summary):
+    def display_summary(self, summary, text_type):
         """Wyświetla podsumowanie w nowym oknie i dodaje opcję zapisu."""
         summary_window = tk.Toplevel()
-        summary_window.title("Summary")
+        summary_window.title(text_type)
         summary_window.geometry("800x600")
 
-        ttk.Label(summary_window, text="Summary:", font=("Helvetica", 14)).pack(pady=10)
+        ttk.Label(summary_window, text=text_type, font=("Helvetica", 14)).pack(pady=10)
 
         summary_text = ScrolledText(summary_window, wrap=tk.WORD, width=80, height=20)
         summary_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
@@ -443,7 +443,7 @@ class MeetingRecorderApp:
                 summary = summarize_with_ai(self.transcription, cohere_api_key)
 
                 # Wyświetlenie podsumowania w GUI
-                self.display_summary(summary)
+                self.display_summary(summary, "Summary")
 
             finally:
                 loading_window.destroy()  # Zamknięcie okna komunikatu
@@ -533,7 +533,7 @@ class MeetingRecorderApp:
                         content += page.get_text("text")
 
             # Wyświetlanie zawartości notatki
-            self.display_summary(content)
+            self.display_summary(content, "Note")
 
         def delete_note():
             selected = notes_list.selection()
@@ -608,7 +608,7 @@ class MeetingRecorderApp:
                     # Klucz API Cohere
                     cohere_api_key = "9UFiMQMILWQRjprgjeVztTywY6si7xF0RjTT8IYC"
                     summary = summarize_with_ai(note_content, cohere_api_key)
-                    self.display_summary(summary)
+                    self.display_summary(summary, "Summary")
 
                 finally:
                     loading_window.destroy()  # Zamknięcie okna komunikatu

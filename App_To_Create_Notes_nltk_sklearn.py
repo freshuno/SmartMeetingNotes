@@ -52,43 +52,28 @@ def lemmatize_text(text):
     lemmatized_sentences = [" ".join([token.lemma_ for token in sent]) for sent in doc.sents]
     return " ".join(lemmatized_sentences)
 
-def summarize_with_sklearn(text, num_sentences=3):
+def summarize_with_ai(text, api_key, num_sentences=3):
     """
-    Podsumowywanie tekstu za pomocą TF-IDF i cosine similarity (dla polskiego).
+    Podsumowywanie tekstu za pomocą Cohere AI.
     """
-    # Lematizacja tekstu
-    #text = lemmatize_text(text)
+    import cohere
 
-    # Tokenizacja tekstu na zdania
-    #sentences = nltk.sent_tokenize(text, language="polish")
-    # Podziel tekst na linie (przerwy w mowie)
-    sentences = text.split('\n')
+    co = cohere.Client("9UFiMQMILWQRjprgjeVztTywY6si7xF0RjTT8IYC")
 
-    if len(sentences) <= num_sentences:
-        return text
+    # Tworzymy prompt dla Cohere
+    document = text.strip()
+    prompt = f"Summarize the following text in {num_sentences} sentences: {document}"
 
-    # TF-IDF Vectorizer (z lematyzacją tylko do analizy)
-    lemmatized_sentences = [lemmatize_text(sentence) for sentence in sentences]
-    tfidf = TfidfVectorizer(stop_words=polish_stop_words)
-    tfidf_matrix = tfidf.fit_transform(lemmatized_sentences)
-
-    # Oblicz macierz podobieństwa kosinusowego
-    sentence_scores = tfidf_matrix.sum(axis=1)
-
-    # Posortuj zdania wg ich wyników TF-IDF
-    ranked_sentences = [
-        (i, sentence_scores[i, 0]) for i in range(len(sentences))
-    ]
-    ranked_sentences = sorted(ranked_sentences, key=lambda x: x[1], reverse=True)
-
-    # Wybierz najlepsze zdania
-    top_sentence_indices = [ranked_sentences[i][0] for i in range(num_sentences)]
-    top_sentence_indices.sort()  # Sortowanie chronologiczne
-
-    # Złóż podsumowanie
-    summary = " ".join([sentences[i] for i in top_sentence_indices])
-
-    return summary
+    try:
+        response = co.generate(
+            model="command-r-plus-08-2024",
+            prompt=prompt,
+            max_tokens=500
+        )
+        summary = response.generations[0].text.strip()
+        return summary
+    except Exception as e:
+        return f"An error occurred while generating the summary: {e}"
 
 class MeetingRecorderApp:
     def __init__(self):
@@ -371,6 +356,28 @@ class MeetingRecorderApp:
             messagebox.showinfo("Success", "Notes saved successfully.")
         except Exception as e:
             messagebox.showerror("Error", f"An error occurred while saving notes: {e}")
+
+    def summarize_notes(self):
+        if not self.transcription.strip():
+            messagebox.showwarning("Warning", "No transcription to summarize.")
+            return
+
+        # Wstaw swój klucz API Cohere
+        cohere_api_key = "9UFiMQMILWQRjprgjeVztTywY6si7xF0RjTT8IYC"
+
+        # Podsumowanie notatek
+        summary = summarize_with_ai(self.transcription, cohere_api_key)
+
+        # Wyświetlenie podsumowania
+        summary_window = tk.Toplevel()
+        summary_window.title("Summary")
+        summary_window.geometry("600x400")
+
+        ttk.Label(summary_window, text="Summary:", font=("Helvetica", 14)).pack(pady=10)
+        summary_text = ScrolledText(summary_window, wrap=tk.WORD, width=80, height=20)
+        summary_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        summary_text.insert(tk.END, summary)
+        summary_text.configure(state="disabled")
 
     def browse_notes(self):
         notes_window = tk.Toplevel()

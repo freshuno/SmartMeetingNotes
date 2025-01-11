@@ -109,32 +109,6 @@ class MeetingRecorderApp:
         )
         header_label.pack(fill=X)
 
-        # Główne przyciski akcji
-        button_frame = ttk.Frame(root, padding=20)
-        button_frame.pack(fill=X)
-
-        ttk.Button(
-            button_frame, text="Start Recording", command=self.start_audio_recording, bootstyle=SUCCESS
-        ).grid(row=0, column=0, padx=10, pady=5)
-        ttk.Button(
-            button_frame, text="Stop Recording", command=self.stop_audio_recording, bootstyle=DANGER
-        ).grid(row=0, column=1, padx=10, pady=5)
-        ttk.Button(
-            button_frame, text="Save Notes", command=self.save_notes, bootstyle=PRIMARY
-        ).grid(row=0, column=2, padx=10, pady=5)
-        ttk.Button(
-            button_frame, text="Summarize Notes", command=self.summarize_notes, bootstyle=INFO
-        ).grid(row=0, column=3, padx=10, pady=5)
-        ttk.Button(
-            button_frame, text="Browse Recordings", command=self.browse_recordings, bootstyle=SECONDARY
-        ).grid(row=0, column=4, padx=10, pady=5)
-        ttk.Button(
-            button_frame, text="Browse Notes", command=self.browse_notes, bootstyle=WARNING
-        ).grid(row=0, column=5, padx=10, pady=5)
-        ttk.Button(
-            button_frame, text="Settings", command=self.open_settings, bootstyle=OUTLINE
-        ).grid(row=0, column=6, padx=10, pady=5)
-
         # Obszar transkrypcji
         transcription_label = ttk.Label(
             root, text="Transcription:", font=("Helvetica", 14), anchor=W
@@ -624,6 +598,134 @@ class MeetingRecorderApp:
         ttk.Button(button_frame, text="Rename", command=rename_note).grid(row=0, column=2, padx=10)
         ttk.Button(button_frame, text="Summarize Note", command=summarize_selected_note).grid(row=0, column=3, padx=10)
 
+    def browse_summaries(self):
+        summaries_window = tk.Toplevel()
+        summaries_window.title("Available Summaries")
+        summaries_window.geometry("800x600")
+
+        ttk.Label(summaries_window, text="Available Summaries:", font=("Helvetica", 14)).pack(pady=10)
+
+        # Frame for TreeView
+        listbox_frame = ttk.Frame(summaries_window)
+        listbox_frame.pack(pady=10, fill=tk.BOTH, expand=True)
+
+        columns = ("Name", "Size (KB)", "Date")
+        summaries_list = ttk.Treeview(listbox_frame, columns=columns, show="headings", height=15)
+        summaries_list.pack(fill=tk.BOTH, expand=True)
+
+        for col in columns:
+            summaries_list.heading(col, text=col, anchor=tk.CENTER)
+
+        # Column sizes
+        summaries_list.column("Name", anchor=tk.W, width=300)
+        summaries_list.column("Size (KB)", anchor=tk.E, width=100)
+        summaries_list.column("Date", anchor=tk.W, width=200)
+
+        # Load summaries
+        summaries_folder = "./summaries"
+        if not os.path.exists(summaries_folder):
+            os.makedirs(summaries_folder)
+
+        def load_summaries(sort_by="Name", reverse=False):
+            for row in summaries_list.get_children():
+                summaries_list.delete(row)
+
+            summaries = [f for f in os.listdir(summaries_folder) if f.endswith(".txt") or f.endswith(".pdf")]
+
+            summaries_info = []
+            for summary in summaries:
+                filepath = os.path.join(summaries_folder, summary)
+                file_info = os.stat(filepath)
+                size_kb = round(file_info.st_size / 1024, 2)
+                last_modified = datetime.fromtimestamp(file_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
+                summaries_info.append((summary, size_kb, last_modified))
+
+            sort_index = {"Name": 0, "Size (KB)": 1, "Date": 2}[sort_by]
+            summaries_info.sort(key=lambda x: x[sort_index], reverse=reverse)
+
+            for summary in summaries_info:
+                summaries_list.insert("", tk.END, values=summary)
+
+        load_summaries()
+
+        sort_order = {"Name": False, "Size (KB)": False, "Date": False}
+
+        def on_column_click(col):
+            sort_order[col] = not sort_order[col]
+            load_summaries(sort_by=col, reverse=sort_order[col])
+
+        for col in columns:
+            summaries_list.heading(col, text=col, command=lambda c=col: on_column_click(c))
+
+        # Actions
+        def open_summary():
+            selected = summaries_list.selection()
+            if not selected:
+                messagebox.showerror("Error", "No summary selected!")
+                return
+            filename = summaries_list.item(selected[0], "values")[0]
+            filepath = os.path.join(summaries_folder, filename)
+
+            # Open and display content
+            if filename.endswith(".txt"):
+                with open(filepath, "r", encoding="utf-8") as file:
+                    content = file.read()
+            elif filename.endswith(".pdf"):
+                with fitz.open(filepath) as doc:
+                    content = ""
+                    for page in doc:
+                        content += page.get_text("text")
+
+            self.display_summary(content, "Summary")
+
+        def delete_summary():
+            selected = summaries_list.selection()
+            if not selected:
+                messagebox.showerror("Error", "No summary selected!")
+                return
+            filename = summaries_list.item(selected[0], "values")[0]
+            os.remove(os.path.join(summaries_folder, filename))
+            load_summaries()
+            messagebox.showinfo("Delete", f"{filename} deleted successfully!")
+
+        def rename_summary():
+            selected = summaries_list.selection()
+            if not selected:
+                messagebox.showerror("Error", "No summary selected!")
+                return
+            old_filename = summaries_list.item(selected[0], "values")[0]
+            rename_window = tk.Toplevel(summaries_window)
+            rename_window.title("Rename Summary")
+
+            ttk.Label(rename_window, text="Enter new name (without extension):").pack(pady=10)
+            new_name_var = tk.StringVar(value=os.path.splitext(old_filename)[0])
+            new_name_entry = ttk.Entry(rename_window, textvariable=new_name_var)
+            new_name_entry.pack(pady=5)
+
+            def apply_rename():
+                new_name = new_name_var.get().strip()
+                if not new_name:
+                    messagebox.showerror("Error", "Name cannot be empty!")
+                    return
+                new_filename = f"{new_name}{os.path.splitext(old_filename)[1]}"
+                os.rename(
+                    os.path.join(summaries_folder, old_filename),
+                    os.path.join(summaries_folder, new_filename)
+                )
+                load_summaries()
+                rename_window.destroy()
+                messagebox.showinfo("Rename", f"Renamed to {new_filename}")
+
+            ttk.Button(rename_window, text="Rename", command=apply_rename).pack(pady=10)
+
+        # Buttons
+        button_frame = ttk.Frame(summaries_window)
+        button_frame.pack(pady=10)
+
+        ttk.Button(button_frame, text="Open", command=open_summary).grid(row=0, column=0, padx=10)
+        ttk.Button(button_frame, text="Delete", command=delete_summary).grid(row=0, column=1, padx=10)
+        ttk.Button(button_frame, text="Rename", command=rename_summary).grid(row=0, column=2, padx=10)
+
     def browse_recordings(self):
         recordings_window = tk.Toplevel()
         recordings_window.title("Available Recordings")
@@ -803,13 +905,14 @@ class MeetingRecorderApp:
         button_frame = ttk.Frame(root)
         button_frame.pack(pady=10)
 
-        ttk.Button(button_frame, text="Start Recording", command=self.start_audio_recording).grid(row=0, column=0, padx=10)
-        ttk.Button(button_frame, text="Stop Recording", command=self.stop_audio_recording).grid(row=0, column=1, padx=10)
-        ttk.Button(button_frame, text="Save Notes", command=self.save_notes).grid(row=0, column=2, padx=10)
-        ttk.Button(button_frame, text="Summarize Notes", command=self.summarize_notes).grid(row=0, column=6, padx=10)
-        ttk.Button(button_frame, text="Browse Recordings", command=self.browse_recordings).grid(row=0, column=3, padx=10)
+        ttk.Button(button_frame, text="Start Recording", command=self.start_audio_recording, bootstyle="success").grid(row=0, column=0, padx=10)
+        ttk.Button(button_frame, text="Stop Recording", command=self.stop_audio_recording, bootstyle="danger").grid(row=0, column=1, padx=10)
+        ttk.Button(button_frame, text="Save Notes", command=self.save_notes, bootstyle="warning").grid(row=0, column=2, padx=10)
+        ttk.Button(button_frame, text="Summarize Notes", command=self.summarize_notes, bootstyle="warning").grid(row=0, column=3, padx=10)
+        ttk.Button(button_frame, text="Browse Recordings", command=self.browse_recordings).grid(row=0, column=6, padx=10)
         ttk.Button(button_frame, text="Browse Notes", command=self.browse_notes).grid(row=0, column=4, padx=10)
-        ttk.Button(button_frame, text="Settings", command=self.open_settings).grid(row=0, column=5, padx=10)
+        ttk.Button(button_frame, text="Browse Summaries", command=self.browse_summaries).grid(row=0, column=5, padx=10, pady=5)
+        ttk.Button(button_frame, text="Settings", command=self.open_settings, bootstyle="outline-dark").grid(row=0, column=7, padx=10)
 
         transcription_label = ttk.Label(root, text="Transcription:", font=("Helvetica", 12))
         transcription_label.pack(pady=10)

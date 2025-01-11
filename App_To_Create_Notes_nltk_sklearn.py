@@ -274,6 +274,65 @@ class MeetingRecorderApp:
         # Wywołanie okna wyboru formatu
         choose_format()
 
+    def display_summary(self, summary):
+        """Wyświetla podsumowanie w nowym oknie i dodaje opcję zapisu."""
+        summary_window = tk.Toplevel()
+        summary_window.title("Summary")
+        summary_window.geometry("600x400")
+
+        ttk.Label(summary_window, text="Summary:", font=("Helvetica", 14)).pack(pady=10)
+
+        summary_text = ScrolledText(summary_window, wrap=tk.WORD, width=80, height=20)
+        summary_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+        summary_text.insert(tk.END, summary)
+        summary_text.configure(state="disabled")
+
+        # Funkcja zapisu podsumowania
+        def save_summary():
+            # Folder na podsumowania
+            summaries_folder = "./summaries"
+            if not os.path.exists(summaries_folder):
+                os.makedirs(summaries_folder)
+
+            # Wybór formatu
+            def choose_format():
+                format_window = tk.Toplevel(summary_window)
+                format_window.title("Choose Format")
+                selected_format = tk.StringVar(value="txt")
+
+                ttk.Radiobutton(format_window, text="TXT", value="txt", variable=selected_format).pack(pady=10)
+                ttk.Radiobutton(format_window, text="PDF", value="pdf", variable=selected_format).pack(pady=10)
+
+                def save_and_close():
+                    file_type = selected_format.get()
+                    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                    filename = f"summary_{timestamp}.{file_type}"
+                    save_path = os.path.join(summaries_folder, filename)
+
+                    if file_type == "txt":
+                        with open(save_path, "w", encoding="utf-8") as f:
+                            f.write(summary)
+                    elif file_type == "pdf":
+                        pdf = canvas.Canvas(save_path, pagesize=letter)
+                        pdfmetrics.registerFont(TTFont("DejaVuSans", "./DejaVuSans.ttf"))
+                        pdf.setFont("DejaVuSans", 12)
+                        y = 750
+                        for line in textwrap.wrap(summary, width=80):
+                            pdf.drawString(50, y, line)
+                            y -= 15
+                        pdf.save()
+
+                    messagebox.showinfo("Success", f"Summary saved as {filename}")
+                    format_window.destroy()
+
+                ttk.Button(format_window, text="Save", command=save_and_close).pack(pady=20)
+
+            choose_format()
+
+        # Przyciski w oknie podsumowania
+        save_button = ttk.Button(summary_window, text="Save Summary", command=save_summary)
+        save_button.pack(pady=10)
+
     def save_file(self, file_type):
         # Tworzenie unikalnej nazwy pliku
         timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -362,22 +421,27 @@ class MeetingRecorderApp:
             messagebox.showwarning("Warning", "No transcription to summarize.")
             return
 
-        # Wstaw swój klucz API Cohere
-        cohere_api_key = "9UFiMQMILWQRjprgjeVztTywY6si7xF0RjTT8IYC"
+        # Funkcja wykonywana w tle
+        def run_summary():
+            try:
+                if hasattr(self, 'progress_bar'):
+                    self.progress_bar.start(interval=10)  # Szybszy ruch paska
 
-        # Podsumowanie notatek
-        summary = summarize_with_ai(self.transcription, cohere_api_key)
+                # Klucz API Cohere
+                cohere_api_key = "9UFiMQMILWQRjprgjeVztTywY6si7xF0RjTT8IYC"
 
-        # Wyświetlenie podsumowania
-        summary_window = tk.Toplevel()
-        summary_window.title("Summary")
-        summary_window.geometry("600x400")
+                # Wygenerowanie podsumowania
+                summary = summarize_with_ai(self.transcription, cohere_api_key)
 
-        ttk.Label(summary_window, text="Summary:", font=("Helvetica", 14)).pack(pady=10)
-        summary_text = ScrolledText(summary_window, wrap=tk.WORD, width=80, height=20)
-        summary_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
-        summary_text.insert(tk.END, summary)
-        summary_text.configure(state="disabled")
+                # Wyświetlenie podsumowania w GUI
+                self.display_summary(summary)
+
+            finally:
+                if hasattr(self, 'progress_bar'):
+                    self.progress_bar.stop()
+
+        # Uruchomienie wątku
+        threading.Thread(target=run_summary).start()
 
     def browse_notes(self):
         notes_window = tk.Toplevel()
@@ -717,6 +781,12 @@ class MeetingRecorderApp:
         root = tk.Tk()
         root.title("Meeting Recorder")
         root.geometry("1200x800")
+
+        progress_frame = ttk.Frame(root)
+        progress_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        self.progress_bar = ttk.Progressbar(progress_frame, orient="horizontal", mode="indeterminate")
+        self.progress_bar.pack(fill=tk.X, expand=True)
 
         header = ttk.Label(root, text="Meeting Recorder Application", font=("Helvetica", 16, "bold"))
         header.pack(pady=20)

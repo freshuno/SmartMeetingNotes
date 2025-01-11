@@ -78,6 +78,7 @@ def summarize_with_ai(text, api_key, num_sentences=3):
 class MeetingRecorderApp:
     def __init__(self):
         # Inicjalizacja elementów aplikacji (bez zmian funkcjonalnych)
+        self.root = None
         self.audio_filename = ""
         self.is_recording = False
         self.transcription = ""
@@ -94,6 +95,8 @@ class MeetingRecorderApp:
         self.audio_format = "wav"
 
     def start_ui(self):
+        self.root = ttk.Window(themename="flatly")
+        root = self.root
         root = ttk.Window(themename="flatly")
         root.title("Meeting Recorder")
         root.geometry("900x700")
@@ -278,7 +281,7 @@ class MeetingRecorderApp:
         """Wyświetla podsumowanie w nowym oknie i dodaje opcję zapisu."""
         summary_window = tk.Toplevel()
         summary_window.title("Summary")
-        summary_window.geometry("600x400")
+        summary_window.geometry("800x600")
 
         ttk.Label(summary_window, text="Summary:", font=("Helvetica", 14)).pack(pady=10)
 
@@ -423,10 +426,16 @@ class MeetingRecorderApp:
 
         # Funkcja wykonywana w tle
         def run_summary():
-            try:
-                if hasattr(self, 'progress_bar'):
-                    self.progress_bar.start(interval=10)  # Szybszy ruch paska
+            # Tworzymy okno z komunikatem
+            loading_window = tk.Toplevel()
+            loading_window.title("Please Wait")
+            loading_window.geometry("300x100")
 
+            ttk.Label(loading_window, text="Generating summary...", font=("Helvetica", 12)).pack(pady=20)
+            loading_window.transient(self.root)  # Ustawienie okna jako modalnego
+            loading_window.grab_set()  # Zablokowanie interakcji z głównym oknem
+
+            try:
                 # Klucz API Cohere
                 cohere_api_key = "9UFiMQMILWQRjprgjeVztTywY6si7xF0RjTT8IYC"
 
@@ -437,8 +446,7 @@ class MeetingRecorderApp:
                 self.display_summary(summary)
 
             finally:
-                if hasattr(self, 'progress_bar'):
-                    self.progress_bar.stop()
+                loading_window.destroy()  # Zamknięcie okna komunikatu
 
         # Uruchomienie wątku
         threading.Thread(target=run_summary).start()
@@ -446,7 +454,7 @@ class MeetingRecorderApp:
     def browse_notes(self):
         notes_window = tk.Toplevel()
         notes_window.title("Available Notes")
-        notes_window.geometry("700x600")
+        notes_window.geometry("800x600")  # Powiększamy okno na szerokość
 
         ttk.Label(notes_window, text="Available Notes:", font=("Helvetica", 14)).pack(pady=10)
 
@@ -524,42 +532,8 @@ class MeetingRecorderApp:
                     for page in doc:
                         content += page.get_text("text")
 
-            # Okno z zawartością notatki
-            note_window = tk.Toplevel()
-            note_window.title(filename)
-
-            # Pole wyszukiwania
-            search_frame = ttk.Frame(note_window)
-            search_frame.pack(padx=10, pady=5, fill="x")
-
-            ttk.Label(search_frame, text="Search:").pack(side="left", padx=5)
-            search_var = tk.StringVar()
-            search_entry = ttk.Entry(search_frame, textvariable=search_var)
-            search_entry.pack(side="left", padx=5, fill="x", expand=True)
-
-            text_area = ScrolledText(note_window, wrap=tk.WORD, width=80, height=20)
-            text_area.pack(padx=10, pady=10, fill="both", expand=True)
-            text_area.insert(tk.END, content)
-            text_area.configure(state="disabled")
-
-            # Funkcja wyszukiwania
-            def search_text():
-                text_area.tag_remove("highlight", "1.0", tk.END)  # Usunięcie poprzednich podświetleń
-                search_term = search_var.get().strip()
-                if not search_term:
-                    return
-
-                start_idx = "1.0"
-                while True:
-                    start_idx = text_area.search(search_term, start_idx, nocase=1, stopindex=tk.END)
-                    if not start_idx:
-                        break
-                    end_idx = f"{start_idx}+{len(search_term)}c"
-                    text_area.tag_add("highlight", start_idx, end_idx)
-                    start_idx = end_idx
-                text_area.tag_config("highlight", background="yellow", foreground="black")
-
-            search_var.trace("w", lambda *args: search_text())  # Aktualizacja podświetlenia w trakcie wpisywania
+            # Wyświetlanie zawartości notatki
+            self.display_summary(content)
 
         def delete_note():
             selected = notes_list.selection()
@@ -601,6 +575,46 @@ class MeetingRecorderApp:
 
             ttk.Button(rename_window, text="Rename", command=apply_rename).pack(pady=10)
 
+        def summarize_selected_note():
+            selected = notes_list.selection()
+            if not selected:
+                messagebox.showerror("Error", "No note selected!")
+                return
+
+            filename = notes_list.item(selected[0], "values")[0]
+            filepath = os.path.join(notes_folder, filename)
+
+            # Odczytanie zawartości notatki
+            if filename.endswith(".txt"):
+                with open(filepath, "r", encoding="utf-8") as file:
+                    note_content = file.read()
+            elif filename.endswith(".pdf"):
+                with fitz.open(filepath) as doc:
+                    note_content = ""
+                    for page in doc:
+                        note_content += page.get_text("text")
+
+            # Podsumowanie notatki
+            def run_summary():
+                # Tworzymy okno z komunikatem
+                loading_window = tk.Toplevel()
+                loading_window.title("Please Wait")
+                loading_window.geometry("300x100")
+                ttk.Label(loading_window, text="Generating summary...", font=("Helvetica", 12)).pack(pady=20)
+                loading_window.transient(notes_window)  # Modalne okno
+                loading_window.grab_set()  # Blokada interakcji z głównym oknem
+
+                try:
+                    # Klucz API Cohere
+                    cohere_api_key = "9UFiMQMILWQRjprgjeVztTywY6si7xF0RjTT8IYC"
+                    summary = summarize_with_ai(note_content, cohere_api_key)
+                    self.display_summary(summary)
+
+                finally:
+                    loading_window.destroy()  # Zamknięcie okna komunikatu
+
+            threading.Thread(target=run_summary).start()
+
         # Przyciski akcji
         button_frame = ttk.Frame(notes_window)
         button_frame.pack(pady=10)
@@ -608,6 +622,7 @@ class MeetingRecorderApp:
         ttk.Button(button_frame, text="Open", command=open_note).grid(row=0, column=0, padx=10)
         ttk.Button(button_frame, text="Delete", command=delete_note).grid(row=0, column=1, padx=10)
         ttk.Button(button_frame, text="Rename", command=rename_note).grid(row=0, column=2, padx=10)
+        ttk.Button(button_frame, text="Summarize Note", command=summarize_selected_note).grid(row=0, column=3, padx=10)
 
     def browse_recordings(self):
         recordings_window = tk.Toplevel()
@@ -781,12 +796,6 @@ class MeetingRecorderApp:
         root = tk.Tk()
         root.title("Meeting Recorder")
         root.geometry("1200x800")
-
-        progress_frame = ttk.Frame(root)
-        progress_frame.pack(fill=tk.X, padx=10, pady=10)
-
-        self.progress_bar = ttk.Progressbar(progress_frame, orient="horizontal", mode="indeterminate")
-        self.progress_bar.pack(fill=tk.X, expand=True)
 
         header = ttk.Label(root, text="Meeting Recorder Application", font=("Helvetica", 16, "bold"))
         header.pack(pady=20)

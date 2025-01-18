@@ -528,10 +528,26 @@ class MeetingRecorderApp:
             rename_window = tk.Toplevel(notes_window)
             rename_window.title("Rename Note")
 
+            # Ustawienie minimalnego rozmiaru okna
+            rename_window.minsize(300, 150)
+
             ttk.Label(rename_window, text="Enter new name (without extension):").pack(pady=10)
             new_name_var = tk.StringVar(value=os.path.splitext(old_filename)[0])
             new_name_entry = ttk.Entry(rename_window, textvariable=new_name_var)
             new_name_entry.pack(pady=5)
+
+            # Konfiguracja okna, aby pojawiało się na środku ekranu
+            rename_window.update_idletasks()  # Aktualizuje informacje o geometrii okna
+            window_width = rename_window.winfo_width()
+            window_height = rename_window.winfo_height()
+
+            screen_width = rename_window.winfo_screenwidth()
+            screen_height = rename_window.winfo_screenheight()
+
+            position_x = (screen_width // 2) - (window_width // 2)
+            position_y = (screen_height // 2) - (window_height // 2)
+
+            rename_window.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
 
             def apply_rename():
                 new_name = new_name_var.get().strip()
@@ -697,10 +713,26 @@ class MeetingRecorderApp:
             rename_window = tk.Toplevel(summaries_window)
             rename_window.title("Rename Summary")
 
+            # Ustawienie minimalnego rozmiaru okna
+            rename_window.minsize(300, 150)
+
             ttk.Label(rename_window, text="Enter new name (without extension):").pack(pady=10)
             new_name_var = tk.StringVar(value=os.path.splitext(old_filename)[0])
             new_name_entry = ttk.Entry(rename_window, textvariable=new_name_var)
             new_name_entry.pack(pady=5)
+
+            # Konfiguracja okna, aby pojawiało się na środku ekranu
+            rename_window.update_idletasks()  # Aktualizuje informacje o geometrii okna
+            window_width = rename_window.winfo_width()
+            window_height = rename_window.winfo_height()
+
+            screen_width = rename_window.winfo_screenwidth()
+            screen_height = rename_window.winfo_screenheight()
+
+            position_x = (screen_width // 2) - (window_width // 2)
+            position_y = (screen_height // 2) - (window_height // 2)
+
+            rename_window.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
 
             def apply_rename():
                 new_name = new_name_var.get().strip()
@@ -814,10 +846,26 @@ class MeetingRecorderApp:
             rename_window = tk.Toplevel(recordings_window)
             rename_window.title("Rename Recording")
 
+            # Ustawienie minimalnego rozmiaru okna
+            rename_window.minsize(300, 150)
+
             ttk.Label(rename_window, text="Enter new name (without extension):").pack(pady=10)
             new_name_var = tk.StringVar(value=os.path.splitext(old_filename)[0])
             new_name_entry = ttk.Entry(rename_window, textvariable=new_name_var)
             new_name_entry.pack(pady=5)
+
+            # Konfiguracja okna, aby pojawiało się na środku ekranu
+            rename_window.update_idletasks()  # Aktualizuje informacje o geometrii okna
+            window_width = rename_window.winfo_width()
+            window_height = rename_window.winfo_height()
+
+            screen_width = rename_window.winfo_screenwidth()
+            screen_height = rename_window.winfo_screenheight()
+
+            position_x = (screen_width // 2) - (window_width // 2)
+            position_y = (screen_height // 2) - (window_height // 2)
+
+            rename_window.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
 
             def apply_rename():
                 new_name = new_name_var.get().strip()
@@ -858,16 +906,16 @@ class MeetingRecorderApp:
 
         language_var = tk.StringVar(value="Polski")
 
-        ttk.Radiobutton(settings_window, text="Polski", variable=language_var, value="Polski").pack(anchor=tk.W)
-        ttk.Radiobutton(settings_window, text="English", variable=language_var, value="English").pack(anchor=tk.W)
+        ttk.Radiobutton(settings_window, text="Polski", variable=language_var, value="Polski").pack(anchor=tk.W, padx=10)
+        ttk.Radiobutton(settings_window, text="English", variable=language_var, value="English").pack(anchor=tk.W, padx=10)
 
         # Format nagrania
         ttk.Label(settings_window, text="Choose Recording Format:").pack(pady=10)
 
         format_var = tk.StringVar(value=self.audio_format)
 
-        ttk.Radiobutton(settings_window, text="WAV", variable=format_var, value="wav").pack(anchor=tk.W)
-        ttk.Radiobutton(settings_window, text="MP3", variable=format_var, value="mp3").pack(anchor=tk.W)
+        ttk.Radiobutton(settings_window, text="WAV", variable=format_var, value="wav").pack(anchor=tk.W, padx=10)
+        ttk.Radiobutton(settings_window, text="MP3", variable=format_var, value="mp3").pack(anchor=tk.W, padx=10)
 
         # Maksymalne miejsce
         ttk.Label(settings_window, text="Set Maximum Disk Space (MB):").pack(pady=10)
@@ -880,9 +928,9 @@ class MeetingRecorderApp:
 
         quality_var = tk.StringVar(value=getattr(self, "recording_quality", "medium"))  # Domyślnie "medium"
 
-        ttk.Radiobutton(settings_window, text="Low", variable=quality_var, value="low").pack(anchor=tk.W)
-        ttk.Radiobutton(settings_window, text="Medium", variable=quality_var, value="medium").pack(anchor=tk.W)
-        ttk.Radiobutton(settings_window, text="High", variable=quality_var, value="high").pack(anchor=tk.W)
+        ttk.Radiobutton(settings_window, text="Low", variable=quality_var, value="low").pack(anchor=tk.W, padx=10)
+        ttk.Radiobutton(settings_window, text="Medium", variable=quality_var, value="medium").pack(anchor=tk.W, padx=10)
+        ttk.Radiobutton(settings_window, text="High", variable=quality_var, value="high").pack(anchor=tk.W, padx=10)
 
         # Funkcja zapisu ustawień
         def save_settings():

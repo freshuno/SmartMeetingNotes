@@ -307,7 +307,7 @@ class MeetingRecorderApp:
             choose_format()
 
         # Przyciski w oknie podsumowania
-        save_button = ttk.Button(summary_window, text="Save Summary", command=save_summary)
+        save_button = ttk.Button(summary_window, text=f"Save {text_type}", command=save_summary)
         save_button.pack(pady=10)
 
     def save_file(self, file_type):

@@ -899,38 +899,43 @@ class MeetingRecorderApp:
 
         settings_window = tk.Toplevel()
         settings_window.title("Settings")
-        settings_window.geometry("400x400")  # Zwiększyłem wysokość, aby pomieścić nowe opcje
+        settings_window.geometry("600x600")
 
-        # Wybór języka
-        ttk.Label(settings_window, text="Choose Language:").pack(pady=10)
+        # Nagłówek okna ustawień
+        ttk.Label(settings_window, text="Settings", font=("Helvetica", 16, "bold"), anchor=tk.CENTER).pack(pady=10)
+
+        # Ramka dla języka
+        language_frame = ttk.Labelframe(settings_window, text="Language Settings", padding=10)
+        language_frame.pack(fill=tk.X, padx=10, pady=10)
 
         language_var = tk.StringVar(value="Polski")
+        ttk.Radiobutton(language_frame, text="Polski", variable=language_var, value="Polski").pack(anchor=tk.W)
+        ttk.Radiobutton(language_frame, text="English", variable=language_var, value="English").pack(anchor=tk.W)
 
-        ttk.Radiobutton(settings_window, text="Polski", variable=language_var, value="Polski").pack(anchor=tk.W, padx=10)
-        ttk.Radiobutton(settings_window, text="English", variable=language_var, value="English").pack(anchor=tk.W, padx=10)
-
-        # Format nagrania
-        ttk.Label(settings_window, text="Choose Recording Format:").pack(pady=10)
+        # Ramka dla formatu nagrania
+        format_frame = ttk.Labelframe(settings_window, text="Recording Format", padding=10)
+        format_frame.pack(fill=tk.X, padx=10, pady=10)
 
         format_var = tk.StringVar(value=self.audio_format)
+        ttk.Radiobutton(format_frame, text="WAV", variable=format_var, value="wav").pack(anchor=tk.W)
+        ttk.Radiobutton(format_frame, text="MP3", variable=format_var, value="mp3").pack(anchor=tk.W)
 
-        ttk.Radiobutton(settings_window, text="WAV", variable=format_var, value="wav").pack(anchor=tk.W, padx=10)
-        ttk.Radiobutton(settings_window, text="MP3", variable=format_var, value="mp3").pack(anchor=tk.W, padx=10)
+        # Ramka dla miejsca na dysku
+        disk_space_frame = ttk.Labelframe(settings_window, text="Disk Space", padding=10)
+        disk_space_frame.pack(fill=tk.X, padx=10, pady=10)
 
-        # Maksymalne miejsce
-        ttk.Label(settings_window, text="Set Maximum Disk Space (MB):").pack(pady=10)
+        max_space_var = tk.IntVar(value=getattr(self, "max_disk_space", 500))
+        ttk.Label(disk_space_frame, text="Set Maximum Disk Space (MB):").pack(anchor=tk.W)
+        ttk.Entry(disk_space_frame, textvariable=max_space_var).pack(pady=5, fill=tk.X)
 
-        max_space_var = tk.IntVar(value=getattr(self, "max_disk_space", 500))  # Domyślnie 500 MB
-        ttk.Entry(settings_window, textvariable=max_space_var).pack(pady=5)
+        # Ramka dla jakości nagrania
+        quality_frame = ttk.Labelframe(settings_window, text="Recording Quality", padding=10)
+        quality_frame.pack(fill=tk.X, padx=10, pady=10)
 
-        # Jakość nagrania
-        ttk.Label(settings_window, text="Choose Recording Quality:").pack(pady=10)
-
-        quality_var = tk.StringVar(value=getattr(self, "recording_quality", "medium"))  # Domyślnie "medium"
-
-        ttk.Radiobutton(settings_window, text="Low", variable=quality_var, value="low").pack(anchor=tk.W, padx=10)
-        ttk.Radiobutton(settings_window, text="Medium", variable=quality_var, value="medium").pack(anchor=tk.W, padx=10)
-        ttk.Radiobutton(settings_window, text="High", variable=quality_var, value="high").pack(anchor=tk.W, padx=10)
+        quality_var = tk.StringVar(value=getattr(self, "recording_quality", "medium"))
+        ttk.Radiobutton(quality_frame, text="Low", variable=quality_var, value="low").pack(anchor=tk.W)
+        ttk.Radiobutton(quality_frame, text="Medium", variable=quality_var, value="medium").pack(anchor=tk.W)
+        ttk.Radiobutton(quality_frame, text="High", variable=quality_var, value="high").pack(anchor=tk.W)
 
         # Funkcja zapisu ustawień
         def save_settings():
@@ -940,7 +945,9 @@ class MeetingRecorderApp:
             messagebox.showinfo("Settings", "Settings saved.")
             settings_window.destroy()
 
-        ttk.Button(settings_window, text="Save", command=save_settings).pack(pady=20)
+        ttk.Button(settings_window, text="Save Settings", command=save_settings).pack(pady=20)
+
+        settings_window.mainloop()
 
     def start_ui(self):
         root = tk.Tk()

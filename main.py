@@ -34,6 +34,7 @@ import time
 import pyautogui  # Dodajemy do importów pyautogui
 from datetime import datetime
 from tkinter import messagebox
+from PIL import Image, ImageTk  # Dodajemy PIL do obsługi obrazów
 
 
 # Pobierz potrzebne dane NLTK (raz)
@@ -781,6 +782,97 @@ class MeetingRecorderApp:
         ttk.Button(button_frame, text="Delete", command=delete_summary).grid(row=0, column=1, padx=10)
         ttk.Button(button_frame, text="Rename", command=rename_summary).grid(row=0, column=2, padx=10)
 
+    def browse_screenshots(self):
+        """Przeglądanie dostępnych zrzutów ekranu z podglądem."""
+        screenshots_window = tk.Toplevel()
+        screenshots_window.title("Available Screenshots")
+        screenshots_window.geometry("1200x800")
+
+        ttk.Label(screenshots_window, text="Available Screenshots:", font=("Helvetica", 14)).pack(pady=10)
+
+        canvas_frame = ttk.Frame(screenshots_window)
+        canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
+
+        canvas = tk.Canvas(canvas_frame)
+        scrollbar = ttk.Scrollbar(canvas_frame, orient=tk.VERTICAL, command=canvas.yview)
+        canvas.configure(yscrollcommand=scrollbar.set)
+
+        scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
+        canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+
+        inner_frame = ttk.Frame(canvas)
+        canvas.create_window((0, 0), window=inner_frame, anchor="nw")
+
+        def load_screenshots():
+            for widget in inner_frame.winfo_children():
+                widget.destroy()
+
+            screenshots = [f for f in os.listdir(self.screenshots_folder) if f.endswith(".png")]
+            row, col = 0, 0
+            for screenshot in screenshots:
+                filepath = os.path.join(self.screenshots_folder, screenshot)
+
+                img = Image.open(filepath)
+                img.thumbnail((150, 150))
+                img_tk = ImageTk.PhotoImage(img)
+
+                frame = ttk.Frame(inner_frame, relief=tk.RAISED, borderwidth=2)
+                frame.grid(row=row, column=col, padx=10, pady=10)
+
+                label = ttk.Label(frame, image=img_tk)
+                label.image = img_tk
+                label.pack()
+
+                name_label = ttk.Label(frame, text=screenshot, anchor="center")
+                name_label.pack()
+
+                def open_image(path=filepath):
+                    os.startfile(path)
+
+                def delete_image(path=filepath):
+                    os.remove(path)
+                    load_screenshots()
+
+                def rename_image(path=filepath, current_name=screenshot):
+                    rename_window = tk.Toplevel(screenshots_window)
+                    rename_window.title("Rename Screenshot")
+                    rename_window.geometry("300x150")
+
+                    ttk.Label(rename_window, text="Enter new name (without extension):").pack(pady=10)
+                    new_name_var = tk.StringVar(value=os.path.splitext(current_name)[0])
+                    ttk.Entry(rename_window, textvariable=new_name_var).pack(pady=5)
+
+                    def apply_rename():
+                        new_name = new_name_var.get().strip()
+                        if not new_name:
+                            messagebox.showerror("Error", "Name cannot be empty!")
+                            return
+                        new_filename = f"{new_name}.png"
+                        os.rename(path, os.path.join(self.screenshots_folder, new_filename))
+                        rename_window.destroy()
+                        load_screenshots()
+                        messagebox.showinfo("Rename", f"Renamed to {new_filename}")
+
+                    ttk.Button(rename_window, text="Rename", command=apply_rename).pack(pady=10)
+
+                open_button = ttk.Button(frame, text="Open", command=open_image)
+                open_button.pack(side=tk.LEFT, padx=5, pady=5)
+
+                delete_button = ttk.Button(frame, text="Delete", command=delete_image)
+                delete_button.pack(side=tk.RIGHT, padx=5, pady=5)
+
+                rename_button = ttk.Button(frame, text="Rename", command=rename_image)
+                rename_button.pack(pady=5)
+
+                col += 1
+                if col == 5:
+                    col = 0
+                    row += 1
+
+            inner_frame.update_idletasks()
+            canvas.config(scrollregion=canvas.bbox("all"))
+
+        load_screenshots()
     def browse_recordings(self):
         recordings_window = tk.Toplevel()
         recordings_window.title("Available Recordings")
@@ -922,7 +1014,7 @@ class MeetingRecorderApp:
 
         settings_window = tk.Toplevel()
         settings_window.title("Settings")
-        settings_window.geometry("600x600")
+        settings_window.geometry("650x650")
 
         # Nagłówek okna ustawień
         ttk.Label(settings_window, text="Settings", font=("Helvetica", 16, "bold"), anchor=tk.CENTER).pack(pady=10)
@@ -996,10 +1088,11 @@ class MeetingRecorderApp:
         ttk.Button(button_frame, text="Stop Recording", command=self.stop_audio_recording, bootstyle="danger").grid(row=0, column=1, padx=10)
         ttk.Button(button_frame, text="Save Notes", command=self.save_notes, bootstyle="warning").grid(row=0, column=2, padx=10)
         ttk.Button(button_frame, text="Summarize Notes", command=self.summarize_notes, bootstyle="warning").grid(row=0, column=3, padx=10)
-        ttk.Button(button_frame, text="Browse Recordings", command=self.browse_recordings).grid(row=0, column=6, padx=10)
+        ttk.Button(button_frame, text="Browse Recordings", command=self.browse_recordings).grid(row=0, column=7, padx=10)
         ttk.Button(button_frame, text="Browse Notes", command=self.browse_notes).grid(row=0, column=4, padx=10)
         ttk.Button(button_frame, text="Browse Summaries", command=self.browse_summaries).grid(row=0, column=5, padx=10, pady=5)
-        ttk.Button(button_frame, text="Settings", command=self.open_settings, bootstyle="outline-dark").grid(row=0, column=7, padx=10)
+        ttk.Button(button_frame, text="Browse Screenshots", command=self.browse_screenshots).grid(row=0, column=6, padx=10, pady=5)
+        ttk.Button(button_frame, text="Settings", command=self.open_settings, bootstyle="outline-dark").grid(row=0, column=8, padx=10)
 
         transcription_label = ttk.Label(root, text="Transcription:", font=("Helvetica", 12))
         transcription_label.pack(pady=10)

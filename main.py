@@ -30,6 +30,11 @@ import textwrap
 from tkinter import messagebox, filedialog
 import time
 import fitz
+import time
+import pyautogui  # Dodajemy do importów pyautogui
+from datetime import datetime
+from tkinter import messagebox
+
 
 # Pobierz potrzebne dane NLTK (raz)
 #nltk.download("punkt")
@@ -52,7 +57,7 @@ def lemmatize_text(text):
     lemmatized_sentences = [" ".join([token.lemma_ for token in sent]) for sent in doc.sents]
     return " ".join(lemmatized_sentences)
 
-def summarize_with_ai(text, api_key, num_sentences=3):
+def summarize_with_ai(text, api_key, num_sentences=5):
     """
     Podsumowywanie tekstu za pomocą Cohere AI.
     """
@@ -92,7 +97,13 @@ class MeetingRecorderApp:
         if not os.path.exists(self.recordings_folder):
             os.makedirs(self.recordings_folder)
 
+            # Folder na zrzuty ekranu
+        self.screenshots_folder = "./screenshots"
+        if not os.path.exists(self.screenshots_folder):
+            os.makedirs(self.screenshots_folder)
+
         self.audio_format = "wav"
+        self.screenshot_interval = 5
 
     def start_ui(self):
         self.root = ttk.Window(themename="flatly")
@@ -165,7 +176,19 @@ class MeetingRecorderApp:
         self.is_recording = True
         self.transcription = ""
         threading.Thread(target=self.record_and_transcribe).start()
+        threading.Thread(target=self.capture_screenshots).start()
         messagebox.showinfo("Recording", "Recording and transcription started!")
+
+    def capture_screenshots(self):
+        """Robienie zrzutów ekranu co ustalony interwał czasu."""
+        try:
+            while self.is_recording:
+                timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+                screenshot_path = os.path.join(self.screenshots_folder, f"screenshot_{timestamp}.png")
+                pyautogui.screenshot(screenshot_path)
+                time.sleep(self.screenshot_interval)  # Czekaj ustalony interwał
+        except Exception as e:
+            print(f"Error capturing screenshots: {e}")
 
     def record_and_transcribe(self):
         try:
@@ -937,11 +960,20 @@ class MeetingRecorderApp:
         ttk.Radiobutton(quality_frame, text="Medium", variable=quality_var, value="medium").pack(anchor=tk.W)
         ttk.Radiobutton(quality_frame, text="High", variable=quality_var, value="high").pack(anchor=tk.W)
 
+        # Ramka dla interwału zrzutów ekranu
+        screenshot_frame = ttk.Labelframe(settings_window, text="Screenshot Interval (seconds)", padding=10)
+        screenshot_frame.pack(fill=tk.X, padx=10, pady=10)
+
+        screenshot_interval_var = tk.IntVar(value=self.screenshot_interval)
+        ttk.Label(screenshot_frame, text="Set interval for screenshots:").pack(anchor=tk.W)
+        ttk.Entry(screenshot_frame, textvariable=screenshot_interval_var).pack(pady=5, fill=tk.X)
+
         # Funkcja zapisu ustawień
         def save_settings():
             self.audio_format = format_var.get()
             self.max_disk_space = max_space_var.get()
             self.recording_quality = quality_var.get()
+            self.screenshot_interval = screenshot_interval_var.get()
             messagebox.showinfo("Settings", "Settings saved.")
             settings_window.destroy()
 

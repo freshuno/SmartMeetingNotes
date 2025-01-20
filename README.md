@@ -25,7 +25,6 @@
      - **PDF** (generowany za pomocą **ReportLab**).
    - Wbudowane narzędzia do przeglądania, usuwania, zmiany nazw oraz sortowania plików.
 
----
 
 ## Struktura projektu
 - **Meeting Recorder Application**
@@ -48,7 +47,6 @@
 - **Interfejs graficzny**:
   - [Tkinter](https://docs.python.org/3/library/tkinter.html), [ttkbootstrap](https://ttkbootstrap.readthedocs.io/)
 
----
 
 ## Instrukcja uruchomienia
 

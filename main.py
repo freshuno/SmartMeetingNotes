@@ -36,28 +36,6 @@ from datetime import datetime
 from tkinter import messagebox
 from PIL import Image, ImageTk  # Dodajemy PIL do obsługi obrazów
 
-
-# Pobierz potrzebne dane NLTK (raz)
-#nltk.download("punkt")
-#nltk.download("punkt_tab")
-
-# Załaduj model języka polskiego (Spacy)
-nlp = spacy.load("pl_core_news_sm")
-
-# Polskie stop words
-polish_stop_words = [
-    "i", "oraz", "a", "ale", "lub", "więc", "z", "na", "że", "czy", "jak",
-    "tak", "jest", "by", "co", "tego", "dla", "to", "od", "do", "po", "przez",
-    "nie", "jego", "jej", "się", "o", "ze", "u", "za", "bez", "w", "który",
-    "która", "które", "kto", "kogo", "gdzie", "czyli", "tam", "tu", "nad",
-    "pod", "jakie", "jaki", "taki", "ta", "ten", "te"
-]
-
-def lemmatize_text(text):
-    doc = nlp(text)
-    lemmatized_sentences = [" ".join([token.lemma_ for token in sent]) for sent in doc.sents]
-    return " ".join(lemmatized_sentences)
-
 def summarize_with_ai(text, api_key, num_sentences=5):
     """
     Podsumowywanie tekstu za pomocą Cohere AI.

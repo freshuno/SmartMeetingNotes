@@ -35,6 +35,14 @@ import pyautogui  # Dodajemy do importów pyautogui
 from datetime import datetime
 from tkinter import messagebox
 from PIL import Image, ImageTk  # Dodajemy PIL do obsługi obrazów
+import os
+import tkinter as tk
+from tkinter import messagebox
+from tkinter.scrolledtext import ScrolledText
+from PIL import Image, ImageTk
+import pytesseract
+
+pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract\tesseract.exe'
 
 def summarize_with_ai(text, api_key, num_sentences=5):
     """
@@ -833,6 +841,21 @@ class MeetingRecorderApp:
 
                     ttk.Button(rename_window, text="Rename", command=apply_rename).pack(pady=10)
 
+                def perform_ocr(path=filepath):
+                    try:
+                        text = pytesseract.image_to_string(Image.open(path), lang="eng")
+                        ocr_window = tk.Toplevel()
+                        ocr_window.title("OCR Result")
+                        ocr_window.geometry("800x600")
+
+                        ocr_text = ScrolledText(ocr_window, wrap=tk.WORD, width=80, height=30)
+                        ocr_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
+                        ocr_text.insert(tk.END, text)
+                        ocr_text.configure(state="disabled")
+
+                    except Exception as e:
+                        messagebox.showerror("OCR Error", f"Failed to perform OCR: {e}")
+
                 open_button = ttk.Button(frame, text="Open", command=open_image)
                 open_button.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -841,6 +864,9 @@ class MeetingRecorderApp:
 
                 rename_button = ttk.Button(frame, text="Rename", command=rename_image)
                 rename_button.pack(pady=5)
+
+                ocr_button = ttk.Button(frame, text="OCR", command=perform_ocr)
+                ocr_button.pack(side=tk.BOTTOM, pady=5)
 
                 col += 1
                 if col == 5:

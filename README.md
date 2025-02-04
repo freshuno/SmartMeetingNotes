@@ -1,4 +1,4 @@
-# Meeting Recorder Application
+# SmartMeetingNotes
 
 ## Opis projektu
 **Meeting Recorder Application** to zaawansowana aplikacja desktopowa, która umożliwia nagrywanie, transkrypcję oraz podsumowywanie spotkań. Dzięki rozbudowanemu interfejsowi i zaawansowanym algorytmom, aplikacja wspiera użytkowników w efektywnym zarządzaniu treściami ze spotkań.
@@ -50,11 +50,8 @@
 
 ## Instrukcja uruchomienia
 
-1. **Zainstaluj zależności**:
-   ```bash
-   pip install -r requirements.txt
-2. Tutaj coś trzeba dodać
-3. **Uruchom aplikację**:
-   ```bash
-   python main.py
+Pełna instrukcja uruchomienia projektu znajduje się w pliku [setup.md](https://github.com/freshuno/SmartMeetingNotes/blob/main/docs/setup.md) w folderze `docs` i opisuje:
+   - instalację środowiska Python
+   - instalację zależności
+   - konfigurację zmiennych środowiskowych
 

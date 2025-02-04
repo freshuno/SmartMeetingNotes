@@ -3,6 +3,9 @@
 ## Opis projektu
 **SmartMeetingNotes** to zaawansowana aplikacja desktopowa, która umożliwia nagrywanie, transkrypcję, podsumowywanie oraz zarządzanie notatkami i materiałami ze spotkań. Dzięki rozbudowanemu interfejsowi oraz nowoczesnym algorytmom AI, aplikacja ułatwia organizację i analizę treści spotkań.
 
+## Macierz kompetencji
+![image](https://github.com/user-attachments/assets/28b59ebb-3ff6-4020-9d7c-136a9c2daa6c)
+
 ## Zestaw pytań
 
 | Pytanie                                                                   | Odpowiedź                                                                                                     | Uwagi                                                                                                    |

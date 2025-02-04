@@ -75,7 +75,27 @@ def summarize_with_ai(text, api_key, num_sentences=5):
 class MeetingRecorderApp:
     def __init__(self):
         """
-        Inicjalizacja aplikacji, ustawienie parametrów i folderów roboczych.
+        Inicjalizuje aplikację do nagrywania spotkań, ustawiając niezbędne parametry i foldery robocze.
+
+        Atrybuty:
+        - self.root: Główne okno aplikacji (zainicjalizowane później).
+        - self.audio_filename: Nazwa pliku audio dla bieżącego nagrania.
+        - self.is_recording: Flaga wskazująca, czy trwa nagrywanie (domyślnie False).
+        - self.transcription: Przechowuje tekst transkrypcji z nagrania.
+        - self.model_path: Ścieżka do modelu Vosk do rozpoznawania mowy (domyślnie "./vosk-model-small-pl-0.22").
+        - self.samplerate: Częstotliwość próbkowania dźwięku (domyślnie 48000 Hz).
+        - self.blocksize: Rozmiar bloku danych audio przetwarzanych na raz (domyślnie 2048).
+        - self.recorder: Obiekt do zarządzania nagrywaniem (zainicjalizowany później).
+
+        Foldery robocze:
+        - self.recordings_folder: Folder do przechowywania nagrań (domyślnie "./recordings").
+        - self.screenshots_folder: Folder do przechowywania zrzutów ekranu (domyślnie "./screenshots").
+
+        Inne ustawienia:
+        - self.audio_format: Format zapisywanego pliku audio (domyślnie "wav").
+        - self.screenshot_interval: Interwał (w sekundach) między kolejnymi zrzutami ekranu (domyślnie 5).
+
+        Jeśli foldery robocze nie istnieją, są automatycznie tworzone.
         """
         self.root = None
         self.audio_filename = ""
@@ -91,7 +111,7 @@ class MeetingRecorderApp:
         if not os.path.exists(self.recordings_folder):
             os.makedirs(self.recordings_folder)
 
-            # Folder na zrzuty ekranu
+        # Folder na zrzuty ekranu
         self.screenshots_folder = "./screenshots"
         if not os.path.exists(self.screenshots_folder):
             os.makedirs(self.screenshots_folder)
@@ -101,31 +121,43 @@ class MeetingRecorderApp:
 
     def start_ui(self):
         """
-        Inicjalizacja i uruchomienie głównego interfejsu użytkownika aplikacji.
+        Inicjalizuje i uruchamia główny interfejs użytkownika aplikacji do nagrywania spotkań.
+
+        Interfejs użytkownika składa się z:
+        - Nagłówka aplikacji.
+        - Obszaru do wyświetlania transkrypcji w czasie rzeczywistym.
+        - Mechanizmu aktualizacji transkrypcji w czasie rzeczywistym.
+
+        Główne elementy interfejsu:
+        - Nagłówek z nazwą aplikacji.
+        - Pole tekstowe z przewijaniem do wyświetlania transkrypcji.
+        - Automatyczna aktualizacja transkrypcji co 1 sekundę.
         """
-        self.root = ttk.Window(themename="flatly")
+        # Inicjalizacja głównego okna aplikacji
+        self.root = ttk.Window(themename="flatly") # Użycie motywu "flatly"
         root = self.root
         root = ttk.Window(themename="flatly")
-        root.title("Meeting Recorder")
-        root.geometry("900x700")
+        root.title("Meeting Recorder") # Tytuł okna
+        root.geometry("900x700") # Rozmiar okna
 
         # Nagłówek aplikacji
-        header_frame = ttk.Frame(root, padding=10)
-        header_frame.pack(fill=X)
+        header_frame = ttk.Frame(root, padding=10) # Ramka na nagłówek
+        header_frame.pack(fill=X) # Rozciągnięcie na szerokość okna
         header_label = ttk.Label(
             header_frame, text="Meeting Recorder Application", font=("Helvetica", 20, "bold"), anchor=CENTER
-        )
-        header_label.pack(fill=X)
+        ) # Etykieta nagłówka
+        header_label.pack(fill=X) # Rozciągnięcie na szerokość ramki
 
         # Obszar transkrypcji
         transcription_label = ttk.Label(
             root, text="Transcription:", font=("Helvetica", 14), anchor=W
-        )
-        transcription_label.pack(fill=X, padx=10, pady=5)
+        ) # Etykieta obszaru transkrypcji
+        transcription_label.pack(fill=X, padx=10, pady=5) # Rozmieszczenie etykiety
 
-        transcription_frame = ttk.Frame(root, padding=10, relief=RIDGE)
-        transcription_frame.pack(fill=BOTH, expand=True, padx=10, pady=5)
+        transcription_frame = ttk.Frame(root, padding=10, relief=RIDGE) # Ramka na pole tekstowe
+        transcription_frame.pack(fill=BOTH, expand=True, padx=10, pady=5) # Rozciągnięcie na całą dostępną przestrzeń
 
+        # Pole tekstowe z przewijaniem do wyświetlania transkrypcji
         self.transcription_text = ttk.ScrolledText(
             transcription_frame, wrap=WORD, height=20, width=80, font=("Helvetica", 12)
         )
@@ -134,12 +166,16 @@ class MeetingRecorderApp:
         # Aktualizacja transkrypcji w czasie rzeczywistym
         def update_transcription_text():
             """
-            Aktualizacja wyświetlanej transkrypcji w czasie rzeczywistym.
+            Aktualizuje pole tekstowe transkrypcji w czasie rzeczywistym.
+            - Czyści obecną zawartość pola tekstowego.
+            - Wstawia aktualną transkrypcję z `self.transcription`.
+            - Wywołuje się ponownie co 1 sekundę.
             """
             self.transcription_text.delete(1.0, END)
             self.transcription_text.insert(END, self.transcription)
             root.after(1000, update_transcription_text)
 
+        # Pierwsze wywołanie funkcji aktualizującej transkrypcję
         update_transcription_text()
         root.mainloop()
 
@@ -198,46 +234,67 @@ class MeetingRecorderApp:
             print(f"Error capturing screenshots: {e}")
 
     def record_and_transcribe(self):
-        """Nagrywa dźwięk i dokonuje transkrypcji w czasie rzeczywistym.
-                Proces:
-                - Pobiera dane audio z mikrofonu.
-                - Przetwarza dźwięk do formatu odpowiedniego dla Vosk.
-                - Przekazuje dźwięk do modelu rozpoznawania mowy.
-                - Zapisuje rozpoznany tekst do zmiennej `self.transcription`.
-                - Po zakończeniu nagrywania zapisuje plik audio w formacie WAV lub MP3.
+        """
+        Nagrywa dźwięk z systemu i dokonuje transkrypcji w czasie rzeczywistym
+        przy użyciu modelu Vosk. Po zakończeniu nagrywania zapisuje plik audio w wybranym formacie (WAV lub MP3).
+
+        Proces:
+        1. Inicjalizuje model Vosk do rozpoznawania mowy.
+        2. Rozpoczyna nagrywanie dźwięku w blokach o określonym rozmiarze.
+        3. Przetwarza nagrany dźwięk do formatu odpowiedniego dla modelu Vosk.
+        4. Przekazuje dźwięk do modelu, który dokonuje transkrypcji w czasie rzeczywistym.
+        5. Zapisuje rozpoznany tekst do zmiennej `self.transcription`.
+        6. Po zakończeniu nagrywania zapisuje plik audio w formacie WAV lub MP3.
+
+        Wyjątki:
+        - Jeśli model Vosk nie zostanie znaleziony, zgłaszany jest wyjątek `FileNotFoundError`.
+        - W przypadku innych błędów proces jest przerywany, a nagrywanie zatrzymywane.
         """
         try:
+            # Sprawdzenie, czy model Vosk istnieje
             if not os.path.exists(self.model_path):
                 raise FileNotFoundError("Vosk model not found.")
+
+            # Inicjalizacja modelu Vosk
             model = Model(self.model_path)
             recognizer = KaldiRecognizer(model, self.samplerate)
 
+            # Rozpoczęcie nagrywania dźwięku
             with sc.get_microphone(id=str(sc.default_speaker().name), include_loopback=True).recorder(
                     samplerate=self.samplerate, blocksize=self.blocksize) as mic:
-                frames = []
+                frames = [] # Lista do przechowywania ramek dźwiękowych
+                # Pętla nagrywania
                 while self.is_recording:
+                    # Pobranie danych audio
                     data = mic.record(numframes=self.blocksize)
+                    # Konwersja dźwięku do formatu mono (jeśli jest stereo)
                     data_mono = np.mean(data, axis=1) if data.ndim > 1 else data
+                    # Konwersja dźwięku do formatu int16 (wymaganego przez Vosk)
                     data_int16 = (data_mono * 32767).astype(np.int16)
-                    frames.append(data_int16)
+                    frames.append(data_int16) # Dodanie ramki do listy
 
+                    # Przekazanie danych do modelu Vosk w celu transkrypcji
                     if recognizer.AcceptWaveform(data_int16.tobytes()):
                         parsed_result = json.loads(recognizer.Result())
                         if "text" in parsed_result:
-                            self.transcription += parsed_result["text"] + "\n"
+                            self.transcription += parsed_result["text"] + "\n" # Zapisanie rozpoznanego tekstu
 
+                # Po zakończeniu nagrywania: połączenie ramek i zapis pliku audio
                 audio_data = np.concatenate(frames, axis=0)
                 sf.write(self.audio_filename, audio_data, samplerate=self.samplerate)
 
+                # Konwersja do formatu MP3, jeśli wybrano
                 if self.audio_format == "mp3":
                     wav_audio = AudioSegment.from_wav(self.audio_filename)
                     self.audio_filename = self.audio_filename.replace(".wav", ".mp3")
                     wav_audio.export(self.audio_filename, format="mp3")
-                    os.remove(self.audio_filename.replace(".mp3", ".wav"))
+                    os.remove(self.audio_filename.replace(".mp3", ".wav")) # Usunięcie tymczasowego pliku WAV
 
         except Exception:
+            # Obsługa błędów (np. brak modelu, problemy z nagrywaniem)
             pass
         finally:
+            # Zatrzymanie nagrywania niezależnie od wyniku
             self.is_recording = False
 
     def stop_audio_recording(self):
@@ -1174,10 +1231,16 @@ class MeetingRecorderApp:
         ttk.Button(button_frame, text="Rename", command=rename_recording).grid(row=0, column=2, padx=10)
 
     def open_settings(self):
+        """
+        Otwiera okno ustawień, umożliwiające użytkownikowi zmianę różnych parametrów konfiguracyjnych.
+        Ustawienia można zmieniać tylko wtedy, gdy nagrywanie nie jest aktywne.
+        """
+        # Sprawdzenie, czy nagrywanie jest aktywne
         if self.is_recording:
             messagebox.showinfo("Settings", "Stop the recording before opening settings!")
             return
 
+        # Tworzenie nowego okna ustawień
         settings_window = tk.Toplevel()
         settings_window.title("Settings")
         settings_window.geometry("650x650")
@@ -1189,6 +1252,7 @@ class MeetingRecorderApp:
         language_frame = ttk.Labelframe(settings_window, text="Language Settings", padding=10)
         language_frame.pack(fill=tk.X, padx=10, pady=10)
 
+        # Zmienna przechowująca wybrany język
         language_var = tk.StringVar(value="Polski")
         ttk.Radiobutton(language_frame, text="Polski", variable=language_var, value="Polski").pack(anchor=tk.W)
         ttk.Radiobutton(language_frame, text="English", variable=language_var, value="English").pack(anchor=tk.W)
@@ -1233,15 +1297,20 @@ class MeetingRecorderApp:
 
         # Funkcja zapisu ustawień
         def save_settings():
-            self.audio_format = format_var.get()
-            self.max_disk_space = max_space_var.get()
-            self.recording_quality = quality_var.get()
-            self.screenshot_interval = screenshot_interval_var.get()
-            messagebox.showinfo("Settings", "Settings saved.")
-            settings_window.destroy()
+            """
+            Zapisuje zmienione ustawienia i zamyka okno ustawień.
+            """
+            self.audio_format = format_var.get() # Zapisuje wybrany format nagrania
+            self.max_disk_space = max_space_var.get() # Zapisuje maksymalną ilość miejsca na dysku
+            self.recording_quality = quality_var.get() # Zapisuje wybraną jakość nagrania
+            self.screenshot_interval = screenshot_interval_var.get() # Zapisuje interwał zrzutów ekranu
+            messagebox.showinfo("Settings", "Settings saved.") # Wyświetla potwierdzenie zapisu
+            settings_window.destroy() # Zamyka okno ustawień
 
+        # Przycisk do zapisywania ustawień
         ttk.Button(settings_window, text="Save Settings", command=save_settings).pack(pady=20)
 
+        # Uruchomienie głównej pętli okna ustawień
         settings_window.mainloop()
 
     def start_ui(self):

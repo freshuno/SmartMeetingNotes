@@ -669,39 +669,53 @@ class MeetingRecorderApp:
         ttk.Button(button_frame, text="Summarize Note", command=summarize_selected_note).grid(row=0, column=3, padx=10)
 
     def browse_summaries(self):
+        """
+            Otwiera nowe okno z listą dostępnych podsumowań w folderze './summaries'.
+            Umożliwia przeglądanie, sortowanie, otwieranie, usuwanie oraz zmianę nazwy plików podsumowań.
+        """
         summaries_window = tk.Toplevel()
         summaries_window.title("Available Summaries")
         summaries_window.geometry("800x600")
 
         ttk.Label(summaries_window, text="Available Summaries:", font=("Helvetica", 14)).pack(pady=10)
 
-        # Frame for TreeView
+        # Frame dla TreeView
         listbox_frame = ttk.Frame(summaries_window)
         listbox_frame.pack(pady=10, fill=tk.BOTH, expand=True)
 
+        # Kolumny w TreeView
         columns = ("Name", "Size (KB)", "Date")
         summaries_list = ttk.Treeview(listbox_frame, columns=columns, show="headings", height=15)
         summaries_list.pack(fill=tk.BOTH, expand=True)
 
+        # Ustawienie nagłówków kolumn
         for col in columns:
             summaries_list.heading(col, text=col, anchor=tk.CENTER)
 
-        # Column sizes
+        # Ustawienie szerokości kolumn
         summaries_list.column("Name", anchor=tk.W, width=300)
         summaries_list.column("Size (KB)", anchor=tk.E, width=100)
         summaries_list.column("Date", anchor=tk.W, width=200)
 
-        # Load summaries
+        # Ładowanie podsumowań z folderu
         summaries_folder = "./summaries"
         if not os.path.exists(summaries_folder):
             os.makedirs(summaries_folder)
 
         def load_summaries(sort_by="Name", reverse=False):
+            """
+                Ładuje listę podsumowań z folderu i wyświetla je w TreeView.
+
+                :param sort_by: Kolumna, według której sortować podsumowania (domyślnie "Name").
+                :param reverse: Określa, czy sortować malejąco (domyślnie False).
+            """
             for row in summaries_list.get_children():
                 summaries_list.delete(row)
 
+            # Pobieranie listy plików z folderu
             summaries = [f for f in os.listdir(summaries_folder) if f.endswith(".txt") or f.endswith(".pdf")]
 
+            # Pobieranie informacji o plikach
             summaries_info = []
             for summary in summaries:
                 filepath = os.path.join(summaries_folder, summary)
@@ -710,17 +724,25 @@ class MeetingRecorderApp:
                 last_modified = datetime.fromtimestamp(file_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
                 summaries_info.append((summary, size_kb, last_modified))
 
+            # Sortowanie podsumowań
             sort_index = {"Name": 0, "Size (KB)": 1, "Date": 2}[sort_by]
             summaries_info.sort(key=lambda x: x[sort_index], reverse=reverse)
 
+            # Dodawanie podsumowań do TreeView
             for summary in summaries_info:
                 summaries_list.insert("", tk.END, values=summary)
 
         load_summaries()
 
+        # Słownik przechowujący stan sortowania dla każdej kolumny
         sort_order = {"Name": False, "Size (KB)": False, "Date": False}
 
         def on_column_click(col):
+            """
+              Obsługuje kliknięcie nagłówka kolumny, sortując podsumowania według wybranej kolumny.
+
+              :param col: Nazwa kolumny, według której sortować.
+            """
             sort_order[col] = not sort_order[col]
             load_summaries(sort_by=col, reverse=sort_order[col])
 
@@ -729,6 +751,9 @@ class MeetingRecorderApp:
 
         # Actions
         def open_summary():
+            """
+            Otwiera wybrane podsumowanie i wyświetla jego zawartość w nowym oknie.
+            """
             selected = summaries_list.selection()
             if not selected:
                 messagebox.showerror("Error", "No summary selected!")
@@ -749,6 +774,9 @@ class MeetingRecorderApp:
             self.display_summary(content, "Summary")
 
         def delete_summary():
+            """
+            Usuwa wybrane podsumowanie z folderu i odświeża listę.
+            """
             selected = summaries_list.selection()
             if not selected:
                 messagebox.showerror("Error", "No summary selected!")
@@ -759,6 +787,9 @@ class MeetingRecorderApp:
             messagebox.showinfo("Delete", f"{filename} deleted successfully!")
 
         def rename_summary():
+            """
+            Umożliwia zmianę nazwy wybranego podsumowania.
+            """
             selected = summaries_list.selection()
             if not selected:
                 messagebox.showerror("Error", "No summary selected!")
@@ -789,6 +820,9 @@ class MeetingRecorderApp:
             rename_window.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
 
             def apply_rename():
+                """
+                Zastosowuje zmianę nazwy podsumowania.
+                """
                 new_name = new_name_var.get().strip()
                 if not new_name:
                     messagebox.showerror("Error", "Name cannot be empty!")
@@ -813,16 +847,22 @@ class MeetingRecorderApp:
         ttk.Button(button_frame, text="Rename", command=rename_summary).grid(row=0, column=2, padx=10)
 
     def browse_screenshots(self):
-        """Przeglądanie dostępnych zrzutów ekranu z podglądem."""
+        """
+        Otwiera nowe okno umożliwiające przeglądanie dostępnych zrzutów ekranu z folderu.
+        Zawiera podgląd miniatur zrzutów ekranu oraz opcje otwierania, usuwania, zmiany nazwy i wykonania OCR na wybranych zrzutach.
+        """
         screenshots_window = tk.Toplevel()
         screenshots_window.title("Available Screenshots")
         screenshots_window.geometry("1200x800")
 
+        # Nagłówek okna
         ttk.Label(screenshots_window, text="Available Screenshots:", font=("Helvetica", 14)).pack(pady=10)
 
+        # Ramka dla Canvas (obszar przewijania)
         canvas_frame = ttk.Frame(screenshots_window)
         canvas_frame.pack(fill=tk.BOTH, expand=True, padx=10, pady=10)
 
+        # Canvas do przewijania zawartości
         canvas = tk.Canvas(canvas_frame)
         scrollbar = ttk.Scrollbar(canvas_frame, orient=tk.VERTICAL, command=canvas.yview)
         canvas.configure(yscrollcommand=scrollbar.set)
@@ -830,40 +870,69 @@ class MeetingRecorderApp:
         scrollbar.pack(side=tk.RIGHT, fill=tk.Y)
         canvas.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
 
+        # Wewnętrzna ramka dla miniatur zrzutów ekranu
         inner_frame = ttk.Frame(canvas)
         canvas.create_window((0, 0), window=inner_frame, anchor="nw")
 
         def load_screenshots():
+            """
+            Ładuje zrzuty ekranu z folderu i wyświetla je jako miniatury w siatce.
+            Każda miniatura zawiera przyciski do otwierania, usuwania, zmiany nazwy i wykonania OCR.
+            """
+            # Usuwa istniejące miniatury przed załadowaniem nowych
             for widget in inner_frame.winfo_children():
                 widget.destroy()
 
+            # Pobiera listę plików PNG z folderu
             screenshots = [f for f in os.listdir(self.screenshots_folder) if f.endswith(".png")]
             row, col = 0, 0
+
+            # Przetwarza każdy zrzut ekranu
             for screenshot in screenshots:
                 filepath = os.path.join(self.screenshots_folder, screenshot)
 
+                # Otwiera obraz i tworzy miniaturę
                 img = Image.open(filepath)
                 img.thumbnail((150, 150))
                 img_tk = ImageTk.PhotoImage(img)
 
+                # Ramka dla pojedynczego zrzutu ekranu
                 frame = ttk.Frame(inner_frame, relief=tk.RAISED, borderwidth=2)
                 frame.grid(row=row, column=col, padx=10, pady=10)
 
+                # Wyświetla miniaturę
                 label = ttk.Label(frame, image=img_tk)
                 label.image = img_tk
                 label.pack()
 
+                # Wyświetla nazwę pliku
                 name_label = ttk.Label(frame, text=screenshot, anchor="center")
                 name_label.pack()
 
                 def open_image(path=filepath):
+                    """
+                    Otwiera wybrany zrzut ekranu w domyślnej aplikacji systemowej.
+
+                    :param path: Ścieżka do pliku zrzutu ekranu.
+                    """
                     os.startfile(path)
 
                 def delete_image(path=filepath):
+                    """
+                    Usuwa wybrany zrzut ekranu z folderu i odświeża listę miniatur.
+
+                    :param path: Ścieżka do pliku zrzutu ekranu.
+                    """
                     os.remove(path)
                     load_screenshots()
 
                 def rename_image(path=filepath, current_name=screenshot):
+                    """
+                    Otwiera okno do zmiany nazwy wybranego zrzutu ekranu.
+
+                    :param path: Ścieżka do pliku zrzutu ekranu.
+                    :param current_name: Aktualna nazwa pliku.
+                    """
                     rename_window = tk.Toplevel(screenshots_window)
                     rename_window.title("Rename Screenshot")
                     rename_window.geometry("300x150")
@@ -873,6 +942,9 @@ class MeetingRecorderApp:
                     ttk.Entry(rename_window, textvariable=new_name_var).pack(pady=5)
 
                     def apply_rename():
+                        """
+                        Zastosowuje zmianę nazwy pliku zrzutu ekranu.
+                        """
                         new_name = new_name_var.get().strip()
                         if not new_name:
                             messagebox.showerror("Error", "Name cannot be empty!")
@@ -886,12 +958,18 @@ class MeetingRecorderApp:
                     ttk.Button(rename_window, text="Rename", command=apply_rename).pack(pady=10)
 
                 def perform_ocr(path=filepath):
+                    """
+                    Wykonuje OCR (Optical Character Recognition) na wybranym zrzucie ekranu i wyświetla wynik w nowym oknie.
+
+                    :param path: Ścieżka do pliku zrzutu ekranu.
+                    """
                     try:
                         text = pytesseract.image_to_string(Image.open(path), lang="eng")
                         ocr_window = tk.Toplevel()
                         ocr_window.title("OCR Result")
                         ocr_window.geometry("800x600")
 
+                        # Pole tekstowe do wyświetlenia wyniku OCR
                         ocr_text = ScrolledText(ocr_window, wrap=tk.WORD, width=80, height=30)
                         ocr_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
                         ocr_text.insert(tk.END, text)
@@ -900,6 +978,7 @@ class MeetingRecorderApp:
                     except Exception as e:
                         messagebox.showerror("OCR Error", f"Failed to perform OCR: {e}")
 
+                # Przyciski do obsługi zrzutu ekranu
                 open_button = ttk.Button(frame, text="Open", command=open_image)
                 open_button.pack(side=tk.LEFT, padx=5, pady=5)
 
@@ -912,14 +991,17 @@ class MeetingRecorderApp:
                 ocr_button = ttk.Button(frame, text="OCR", command=perform_ocr)
                 ocr_button.pack(side=tk.BOTTOM, pady=5)
 
+                # Przejście do następnej kolumny/wiersza w siatce
                 col += 1
                 if col == 5:
                     col = 0
                     row += 1
 
+            # Aktualizacja obszaru przewijania
             inner_frame.update_idletasks()
             canvas.config(scrollregion=canvas.bbox("all"))
 
+        # Ładowanie zrzutów ekranu przy otwarciu okna
         load_screenshots()
     def browse_recordings(self):
         recordings_window = tk.Toplevel()

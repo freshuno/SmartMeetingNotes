@@ -70,6 +70,12 @@
   - [pytesseract](https://pypi.org/project/pytesseract/), [PIL](https://pypi.org/project/pillow/)
 
 
+## Interfejs
+![image](https://github.com/user-attachments/assets/5d8ead95-ddc0-48d7-9be4-efe559d1ea01)
+
+![image](https://github.com/user-attachments/assets/fcc522fc-86f2-47b4-9039-66bd4cf084bb)
+
+
 
 ## Instrukcja uruchomienia
 

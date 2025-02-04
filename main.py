@@ -167,9 +167,11 @@ class MeetingRecorderApp:
         messagebox.showinfo("Recording", "Recording and transcription started!")
 
     def capture_screenshots(self):
-        """Robienie zrzutów ekranu co ustalony interwał czasu."""
+        """Robienie zrzutów ekranu co ustalony interwał czasu, chyba że interwał wynosi 0 (wyłączone)."""
         try:
             while self.is_recording:
+                if self.screenshot_interval == 0:
+                    return  # Nie rób screenshotów, jeśli interwał wynosi 0
                 timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
                 screenshot_path = os.path.join(self.screenshots_folder, f"screenshot_{timestamp}.png")
                 pyautogui.screenshot(screenshot_path)
@@ -1061,8 +1063,13 @@ class MeetingRecorderApp:
         screenshot_frame.pack(fill=tk.X, padx=10, pady=10)
 
         screenshot_interval_var = tk.IntVar(value=self.screenshot_interval)
+
         ttk.Label(screenshot_frame, text="Set interval for screenshots:").pack(anchor=tk.W)
-        ttk.Entry(screenshot_frame, textvariable=screenshot_interval_var).pack(pady=5, fill=tk.X)
+
+        # Użycie Spinbox do zmiany wartości tylko strzałkami, bez możliwości wpisywania ręcznego
+        spinbox = ttk.Spinbox(screenshot_frame, from_=0, to=60, textvariable=screenshot_interval_var, wrap=True,
+                              state="readonly", increment=1)
+        spinbox.pack(pady=5, fill=tk.X)
 
         # Funkcja zapisu ustawień
         def save_settings():

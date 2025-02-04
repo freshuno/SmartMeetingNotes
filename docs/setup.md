@@ -43,7 +43,7 @@
    - w pliku main.py zaaktualizuj linijkę:
 
      ```bash
-     pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract\tesseract.exe
+     pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract\tesseract.exe'
      ```
      tak żeby odpowiadała lokalizacji na Twoim komputerze
      

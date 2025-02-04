@@ -1086,10 +1086,10 @@ class MeetingRecorderApp:
 
     def start_ui(self):
         root = tk.Tk()
-        root.title("Meeting Recorder")
+        root.title("Smart Meeting Notes")
         root.geometry("1200x800")
 
-        header = ttk.Label(root, text="Meeting Recorder Application", font=("Helvetica", 16, "bold"))
+        header = ttk.Label(root, text="Smart Meeting Notes", font=("Helvetica", 16, "bold"))
         header.pack(pady=20)
 
         button_frame = ttk.Frame(root)

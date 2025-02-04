@@ -1,7 +1,7 @@
-# Meeting Recorder Application
+# SmartMeetingNotes
 
 ## Opis projektu
-**Meeting Recorder Application** to zaawansowana aplikacja desktopowa, która umożliwia nagrywanie, transkrypcję oraz podsumowywanie spotkań. Dzięki rozbudowanemu interfejsowi i zaawansowanym algorytmom, aplikacja wspiera użytkowników w efektywnym zarządzaniu treściami ze spotkań.
+**SmartMeetingNotes** to zaawansowana aplikacja desktopowa, która umożliwia nagrywanie, transkrypcję, podsumowywanie oraz zarządzanie notatkami i materiałami ze spotkań. Dzięki rozbudowanemu interfejsowi oraz nowoczesnym algorytmom AI, aplikacja ułatwia organizację i analizę treści spotkań.
 
 ## Funkcjonalności
 1. **Interfejs użytkownika (GUI)**:
@@ -14,9 +14,9 @@
 2. **Nagrywanie i przetwarzanie dźwięku**:
    - Nagrania są realizowane przy pomocy **Soundcard**.
    - Obsługiwane formaty: WAV i MP3.
-   - Transkrypcje generowane dzięki silnikowi **Vosk** i modelowi języka polskiego.
+   - Transkrypcje generowane dzięki silnikowi **Vosk** (model języka polskiego).
 
-3. **Przetwarzanie tekstu**:
+3. **Podsumowanie notatek**:
    - Tworzenie podsumowań tekstowych za pomocą **Cohere AI**.
      
 4. **Zapisywanie i zarządzanie plikami**:
@@ -25,16 +25,23 @@
      - **PDF** (generowany za pomocą **ReportLab**).
    - Wbudowane narzędzia do przeglądania, usuwania, zmiany nazw oraz sortowania plików.
 
+5. **Analiza zdjęć OCR**:
+   - Przetwarzanie tekstu z obrazów i zrzutów ekranu.
+   - Wykorzystanie pytesseract do rozpoznawania tekstu na obrazach.
+
 
 ## Struktura projektu
 - **Meeting Recorder Application**
   - `recordings/` – Folder na pliki audio.
   - `notes/` – Folder na zapisane notatki.
   - `summaries/` – Folder na podsumowania.
+  - `screenshots/` – Folder na zrzuty ekranu.
   - `vosk-model/` – Model językowy Vosk.
   - `main.py` – Główny plik aplikacji.
   - `requirements.txt` – Lista zależności wymaganych do uruchomienia projektu.
   - `DejaVuSans.ttf` – Czcionka.
+  - `docs/`
+  - `└── setup.md` - Instrukcja instalacji i uruchomienia.
 
 ## Technologie użyte w projekcie
 
@@ -46,15 +53,15 @@
   - [ReportLab](https://www.reportlab.com/)
 - **Interfejs graficzny**:
   - [Tkinter](https://docs.python.org/3/library/tkinter.html), [ttkbootstrap](https://ttkbootstrap.readthedocs.io/)
+- **Analiza obrazów**:
+  - [pytesseract](https://pypi.org/project/pytesseract/), [PIL](https://pypi.org/project/pillow/)
+
 
 
 ## Instrukcja uruchomienia
 
-1. **Zainstaluj zależności**:
-   ```bash
-   pip install -r requirements.txt
-2. Tutaj coś trzeba dodać
-3. **Uruchom aplikację**:
-   ```bash
-   python main.py
+Pełna instrukcja uruchomienia projektu znajduje się w pliku [setup.md](https://github.com/freshuno/SmartMeetingNotes/blob/main/docs/setup.md) w folderze `docs` i opisuje:
+   - instalację środowiska Python
+   - instalację zależności
+   - konfigurację zmiennych środowiskowych
 

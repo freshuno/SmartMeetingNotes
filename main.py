@@ -1003,39 +1003,55 @@ class MeetingRecorderApp:
 
         # Ładowanie zrzutów ekranu przy otwarciu okna
         load_screenshots()
+
     def browse_recordings(self):
+        """
+        Otwiera nowe okno umożliwiające przeglądanie dostępnych nagrań z folderu.
+        Umożliwia sortowanie, odtwarzanie, usuwanie oraz zmianę nazwy plików nagrań.
+        """
         recordings_window = tk.Toplevel()
         recordings_window.title("Available Recordings")
         recordings_window.geometry("700x600")
 
+        # Nagłówek okna
         ttk.Label(recordings_window, text="Available Recordings:", font=("Helvetica", 14)).pack(pady=10)
 
-        # Listbox with additional information
+        # Ramka dla TreeView (lista nagrań)
         listbox_frame = ttk.Frame(recordings_window)
         listbox_frame.pack(pady=10, fill=tk.BOTH, expand=True)
 
+        # Kolumny w TreeView
         columns = ("Name", "Size (MB)", "Date")
         recordings_list = ttk.Treeview(listbox_frame, columns=columns, show="headings", height=15)
         recordings_list.pack(fill=tk.BOTH, expand=True)
 
+        # Ustawienie nagłówków kolumn
         for col in columns:
             recordings_list.heading(col, text=col, anchor=tk.CENTER)
 
-        # Adjust column widths
+        # Ustawienie szerokości kolumn
         recordings_list.column("Name", anchor=tk.W, width=300)
         recordings_list.column("Size (MB)", anchor=tk.E, width=100)
         recordings_list.column("Date", anchor=tk.W, width=200)
 
-        # Load recordings into the list
         def load_recordings(sort_by="Name", reverse=False):
+            """
+            Ładuje listę nagrań z folderu `self.recordings_folder` i wyświetla je w TreeView.
+
+            :param sort_by: Kolumna, według której sortować nagrania (domyślnie "Name").
+            :param reverse: Określa, czy sortować malejąco (domyślnie False).
+            """
+            # Usuwa istniejące wpisy w TreeView
             for row in recordings_list.get_children():
                 recordings_list.delete(row)
 
+            # Pobiera listę plików nagrań (w formacie .wav lub .mp3)
             recordings = [
                 f for f in os.listdir(self.recordings_folder)
                 if f.endswith(('.wav', '.mp3'))
             ]
 
+            # Pobiera informacje o plikach nagrań
             recordings_info = []
             for rec in recordings:
                 filepath = os.path.join(self.recordings_folder, rec)
@@ -1044,27 +1060,38 @@ class MeetingRecorderApp:
                 last_modified = datetime.fromtimestamp(file_info.st_mtime).strftime('%Y-%m-%d %H:%M:%S')
                 recordings_info.append((rec, size_mb, last_modified))
 
+            # Sortowanie nagrań
             sort_index = {"Name": 0, "Size (MB)": 1, "Date": 2}[sort_by]
             recordings_info.sort(key=lambda x: x[sort_index], reverse=reverse)
 
+            # Dodawanie nagrań do TreeView
             for rec in recordings_info:
                 recordings_list.insert("", tk.END, values=rec)
 
-        # Initial load
+        # Początkowe ładowanie nagrań
         load_recordings()
 
-        # Sort on column click
+        # Słownik przechowujący stan sortowania dla każdej kolumny
         sort_order = {"Name": False, "Size (MB)": False, "Date": False}
 
         def on_column_click(col):
-            sort_order[col] = not sort_order[col]  # Toggle sort order
+            """
+            Obsługuje kliknięcie nagłówka kolumny, sortując nagrania według wybranej kolumny.
+
+            :param col: Nazwa kolumny, według której sortować.
+            """
+            sort_order[col] = not sort_order[col]  # Przełącza kolejność sortowania
             load_recordings(sort_by=col, reverse=sort_order[col])
 
+        # Ustawienie obsługi kliknięcia nagłówka kolumny
         for col in columns:
             recordings_list.heading(col, text=col, command=lambda c=col: on_column_click(c))
 
-        # Actions
+        # Funkcje obsługi akcji na nagraniach
         def play_recording():
+            """
+            Odtwarza wybrane nagranie w domyślnej aplikacji systemowej.
+            """
             selected = recordings_list.selection()
             if not selected:
                 messagebox.showerror("Error", "No recording selected!")
@@ -1073,6 +1100,9 @@ class MeetingRecorderApp:
             os.startfile(os.path.join(self.recordings_folder, filename))
 
         def delete_recording():
+            """
+            Usuwa wybrane nagranie z folderu i odświeża listę.
+            """
             selected = recordings_list.selection()
             if not selected:
                 messagebox.showerror("Error", "No recording selected!")
@@ -1083,6 +1113,9 @@ class MeetingRecorderApp:
             messagebox.showinfo("Delete", f"{filename} deleted successfully!")
 
         def rename_recording():
+            """
+            Umożliwia zmianę nazwy wybranego nagrania.
+            """
             selected = recordings_list.selection()
             if not selected:
                 messagebox.showerror("Error", "No recording selected!")
@@ -1113,6 +1146,9 @@ class MeetingRecorderApp:
             rename_window.geometry(f"{window_width}x{window_height}+{position_x}+{position_y}")
 
             def apply_rename():
+                """
+                Zastosowuje zmianę nazwy nagrania.
+                """
                 new_name = new_name_var.get().strip()
                 if not new_name:
                     messagebox.showerror("Error", "Name cannot be empty!")
@@ -1129,7 +1165,7 @@ class MeetingRecorderApp:
             ttk.Button(rename_window, text="Rename", command=apply_rename).pack(pady=10)
 
 
-        # Centered Buttons
+        # Przyciski do obsługi akcji
         button_frame = ttk.Frame(recordings_window)
         button_frame.pack(pady=10)
 

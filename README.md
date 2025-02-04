@@ -76,7 +76,7 @@
 
 ![image](https://github.com/user-attachments/assets/4c864086-d825-4d35-aef2-58042945ed4e)
 
-# Schemat przykładu użycia
+## Schemat przykładu użycia
 
 ![image](https://github.com/user-attachments/assets/f7977564-b620-4db9-a8fc-35f503b5bef5)
 

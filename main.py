@@ -42,11 +42,16 @@ from tkinter.scrolledtext import ScrolledText
 from PIL import Image, ImageTk
 import pytesseract
 
+# Ustawienie ścieżki do Tesseract OCR
 pytesseract.pytesseract.tesseract_cmd = r'E:\Tesseract\tesseract.exe'
 
 def summarize_with_ai(text, api_key, num_sentences=5):
     """
     Podsumowywanie tekstu za pomocą Cohere AI.
+    :param text: Tekst do podsumowania
+    :param api_key: Klucz API Cohere
+    :param num_sentences: Liczba zdań w podsumowaniu
+    :return: Podsumowanie tekstu
     """
     import cohere
 
@@ -69,7 +74,9 @@ def summarize_with_ai(text, api_key, num_sentences=5):
 
 class MeetingRecorderApp:
     def __init__(self):
-        # Inicjalizacja elementów aplikacji (bez zmian funkcjonalnych)
+        """
+        Inicjalizacja aplikacji, ustawienie parametrów i folderów roboczych.
+        """
         self.root = None
         self.audio_filename = ""
         self.is_recording = False
@@ -93,6 +100,9 @@ class MeetingRecorderApp:
         self.screenshot_interval = 5
 
     def start_ui(self):
+        """
+        Inicjalizacja i uruchomienie głównego interfejsu użytkownika aplikacji.
+        """
         self.root = ttk.Window(themename="flatly")
         root = self.root
         root = ttk.Window(themename="flatly")
@@ -123,6 +133,9 @@ class MeetingRecorderApp:
 
         # Aktualizacja transkrypcji w czasie rzeczywistym
         def update_transcription_text():
+            """
+            Aktualizacja wyświetlanej transkrypcji w czasie rzeczywistym.
+            """
             self.transcription_text.delete(1.0, END)
             self.transcription_text.insert(END, self.transcription)
             root.after(1000, update_transcription_text)
@@ -153,6 +166,9 @@ class MeetingRecorderApp:
         pass
 
     def start_audio_recording(self):
+        """
+        Rozpoczęcie nagrywania audio i transkrypcji.
+        """
         if self.is_recording:
             messagebox.showinfo("Recording", "Recording is already in progress!")
             return
@@ -167,7 +183,9 @@ class MeetingRecorderApp:
         messagebox.showinfo("Recording", "Recording and transcription started!")
 
     def capture_screenshots(self):
-        """Robienie zrzutów ekranu co ustalony interwał czasu, chyba że interwał wynosi 0 (wyłączone)."""
+        """
+        Robienie zrzutów ekranu co ustalony interwał czasu, chyba że interwał wynosi 0 (wyłączone).
+        """
         try:
             while self.is_recording:
                 if self.screenshot_interval == 0:
@@ -180,6 +198,14 @@ class MeetingRecorderApp:
             print(f"Error capturing screenshots: {e}")
 
     def record_and_transcribe(self):
+        """Nagrywa dźwięk i dokonuje transkrypcji w czasie rzeczywistym.
+                Proces:
+                - Pobiera dane audio z mikrofonu.
+                - Przetwarza dźwięk do formatu odpowiedniego dla Vosk.
+                - Przekazuje dźwięk do modelu rozpoznawania mowy.
+                - Zapisuje rozpoznany tekst do zmiennej `self.transcription`.
+                - Po zakończeniu nagrywania zapisuje plik audio w formacie WAV lub MP3.
+        """
         try:
             if not os.path.exists(self.model_path):
                 raise FileNotFoundError("Vosk model not found.")
@@ -215,6 +241,9 @@ class MeetingRecorderApp:
             self.is_recording = False
 
     def stop_audio_recording(self):
+        """
+        Zatrzymanie nagrywania audio.
+        """
         if not self.is_recording:
             messagebox.showinfo("Recording", "No active recording to stop!")
             return
@@ -264,13 +293,20 @@ class MeetingRecorderApp:
         choose_format()
 
     def display_summary(self, summary, text_type):
-        """Wyświetla podsumowanie w nowym oknie i dodaje opcję zapisu."""
-        summary_window = tk.Toplevel()
-        summary_window.title(text_type)
-        summary_window.geometry("800x600")
+        """Wyświetla podsumowanie w nowym oknie i dodaje opcję zapisu.
 
+        Parametry:
+        summary (str): Tekst podsumowania do wyświetlenia.
+        text_type (str): Typ podsumowania, używany jako tytuł okna.
+        """
+        summary_window = tk.Toplevel()  # Tworzy nowe okno podrzędne
+        summary_window.title(text_type)  # Ustawia tytuł okna
+        summary_window.geometry("800x600")  # Ustawia wymiary okna
+
+        # Dodaje etykietę z tytułem
         ttk.Label(summary_window, text=text_type, font=("Helvetica", 14)).pack(pady=10)
 
+        # Pole tekstowe do wyświetlania podsumowania
         summary_text = ScrolledText(summary_window, wrap=tk.WORD, width=80, height=20)
         summary_text.pack(padx=10, pady=10, fill=tk.BOTH, expand=True)
         summary_text.insert(tk.END, summary)
@@ -278,20 +314,22 @@ class MeetingRecorderApp:
 
         # Funkcja zapisu podsumowania
         def save_summary():
-            # Folder na podsumowania
+            # Definiuje ścieżkę folderu do zapisu podsumowań
             summaries_folder = "./summaries"
             if not os.path.exists(summaries_folder):
-                os.makedirs(summaries_folder)
+                os.makedirs(summaries_folder) # Tworzy folder, jeśli nie istnieje
 
-            # Wybór formatu
+            # Funkcja obsługująca wybór formatu zapisu
             def choose_format():
-                format_window = tk.Toplevel(summary_window)
+                format_window = tk.Toplevel(summary_window) # Tworzy nowe okno wyboru formatu
                 format_window.title("Choose Format")
-                selected_format = tk.StringVar(value="txt")
+                selected_format = tk.StringVar(value="txt") # Domyślny wybór formatu
 
+                # Przyciski radiowe do wyboru formatu (TXT/PDF)
                 ttk.Radiobutton(format_window, text="TXT", value="txt", variable=selected_format).pack(pady=10)
                 ttk.Radiobutton(format_window, text="PDF", value="pdf", variable=selected_format).pack(pady=10)
 
+                # Funkcja zapisująca plik w wybranym formacie
                 def save_and_close():
                     file_type = selected_format.get()
                     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -299,26 +337,30 @@ class MeetingRecorderApp:
                     save_path = os.path.join(summaries_folder, filename)
 
                     if file_type == "txt":
+                        # Zapis podsumowania jako plik tekstowy
                         with open(save_path, "w", encoding="utf-8") as f:
                             f.write(summary)
                     elif file_type == "pdf":
+                        # Zapis podsumowania jako plik PDF
                         pdf = canvas.Canvas(save_path, pagesize=letter)
                         pdfmetrics.registerFont(TTFont("DejaVuSans", "./DejaVuSans.ttf"))
                         pdf.setFont("DejaVuSans", 12)
-                        y = 750
+                        y = 750 # Pozycja startowa tekstu w PDF
                         for line in textwrap.wrap(summary, width=80):
                             pdf.drawString(50, y, line)
-                            y -= 15
+                            y -= 15 # Przesunięcie na nową linię
                         pdf.save()
 
+                    # Komunikat o sukcesie zapisu i zamknięcie okna wyboru formatu
                     messagebox.showinfo("Success", f"Summary saved as {filename}")
                     format_window.destroy()
 
+                # Przycisk do zatwierdzenia wyboru formatu i zapisu pliku
                 ttk.Button(format_window, text="Save", command=save_and_close).pack(pady=20)
 
-            choose_format()
+            choose_format() # Wywołanie funkcji wyboru formatu
 
-        # Przyciski w oknie podsumowania
+        # Przycisk do zapisania podsumowania
         save_button = ttk.Button(summary_window, text=f"Save {text_type}", command=save_summary)
         save_button.pack(pady=10)
 

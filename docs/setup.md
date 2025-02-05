@@ -40,6 +40,10 @@
 4. **Instalacja Tesseract:**
    - wejdź w link https://github.com/UB-Mannheim/tesseract/wiki
    - pobierz i zainstaluj Tesseract
+   - wykonaj następujące kroki:
+     
+   ![image](https://github.com/user-attachments/assets/785061a1-794a-4d36-a9c2-4809ec6749cc)
+
    - w pliku main.py zaaktualizuj linijkę:
 
      ```bash
